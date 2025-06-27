@@ -1,0 +1,5 @@
+
+/* Custom components */
+.btn-primary {
+  @apply bg-[var(--color-primary)] text-white px-4 py-2 rounded;
+}

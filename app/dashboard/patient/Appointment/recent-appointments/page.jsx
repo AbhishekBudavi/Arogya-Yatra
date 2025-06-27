@@ -1,0 +1,1 @@
+{/* Recent appointment landing page */}
