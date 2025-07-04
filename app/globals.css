@@ -7,6 +7,8 @@
 @import "tw-animate-css";
 @import "./assest/css/fonts.css";
 
+@custom-variant dark (&:is(.dark *));
+
 html,
 body {
   max-width: 100vw;

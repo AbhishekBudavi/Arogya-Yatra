@@ -1,7 +1,6 @@
 import { Poppins } from "next/font/google";
 import "./globals.css";
-import Navbar from "./components/navbar";
-import Footer from './components/footer'
+
 
 import { DM_Sans } from 'next/font/google';
 
@@ -20,11 +19,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={dmSans.variable}>
       <body className="min-w-screen overflow-hidden bg-sky-50 text-gray-800 font-poppins antialiased">
-        <Navbar />
+        
         <main>
         {children}
         </main>
-            <Footer />
+            
       </body>
     </html>
   );
