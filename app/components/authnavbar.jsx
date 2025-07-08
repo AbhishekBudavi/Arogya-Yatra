@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import logo1 from "../assest/icons/logos/logo.webp";
-import logo from '../assest/icons/logos/Your_paragraph_text-removebg-preview.png'
+import logo from '../../public/Your_paragraph_text-removebg-preview.png'
 export default function AuthNav(){
     return(
        
