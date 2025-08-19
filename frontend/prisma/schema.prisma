@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model patient {
+  id                Int           @id @default(autoincrement())
+  custom_patient_id String        @unique
+  first_name        String
+  last_name         String
+  gender            gender
+  date_of_birth     DateTime
+  mobile_number     String        @db.VarChar(10)
+  photo             String?
+  address           String
+  pincode           String        @db.VarChar(10)
+  city              String
+  state             String
+  height            Float
+  weight            Float
+  blood_group       blood_group
+  allergies         String?
+  chronic_illness   String?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @default(now()) @updatedAt
+  appointments      appointment[]
+}
+
+model doctor {
+  id               Int           @id @default(autoincrement())
+  custom_doctor_id String        @unique
+  hospital_id      String
+  first_name       String
+  last_name        String
+  phone            String        @unique
+  email            String        @unique
+  password         String
+  specialization   String
+  opd_timing       String
+  created_at       DateTime      @default(now())
+  created_by       String
+  updated_at       DateTime      @updatedAt
+  updated_by       String
+  appointments     appointment[]
+  hospital         hospital      @relation(fields: [hospital_id], references: [custom_hospital_id])
+}
+
+model hospital {
+  id                  Int           @id @default(autoincrement())
+  custom_hospital_id  String        @unique
+  hospital_name       String
+  hospital_type       hospital_type
+  address             String
+  pincode             String        @db.VarChar(10)
+  city                String
+  state               String
+  country             String
+  admin_name          String
+  admin_mobile_number String        @unique
+  password            String
+  created_at          DateTime      @default(now())
+  created_by          String
+  updated_at          DateTime      @updatedAt
+  updated_by          String
+  appointments        appointment[]
+  doctors             doctor[]
+}
+
+model appointment {
+  id          Int      @id @default(autoincrement())
+  patient_id  String
+  doctor_id   String
+  hospital_id String
+  date        DateTime
+  start_time  DateTime
+  end_time    DateTime
+  status      String
+  created_at  DateTime @default(now())
+  created_by  String
+  updated_at  DateTime @updatedAt
+  updated_by  String
+  doctor      doctor   @relation(fields: [doctor_id], references: [custom_doctor_id])
+  hospital    hospital @relation(fields: [hospital_id], references: [custom_hospital_id])
+  patient     patient  @relation(fields: [patient_id], references: [custom_patient_id])
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model document {
+  id                Int           @id @default(autoincrement())
+  document_name     String
+  document_url      String
+  user_id           Int           // Refers to doctor.id, patient.id, or hospital.id depending on user_type
+  user_type         user_type     // Enum: doctor, patient, hospital
+  document_type     document_type
+  document_category String
+  document_data     Json          @db.JsonB
+  created_at        DateTime      @default(now())
+  created_by        String
+  updated_at        DateTime      @updatedAt
+  updated_by        String
+
+  @@map("documents") // Maps Prisma model to the actual 'documents' table
+}
+
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model otp_verification {
+  mobile_number String    @db.VarChar
+  otp           String    @db.VarChar
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+enum user_type {
+  doctor
+  patient
+  hospital
+}
+
+enum gender {
+  male
+  female
+  other
+}
+
+enum blood_group {
+  a_positive
+  a_negative
+  b_positive
+  b_negative
+  ab_positive
+  ab_negative
+  o_positive
+  o_negative
+}
+
+enum hospital_type {
+  private
+  public
+  trust
+  ngo
+}
+
+enum document_type {
+  lab_report
+  prescription
+  doctor_notes
+  medical_history
+  medical_expenses
+  vaccination
+}
