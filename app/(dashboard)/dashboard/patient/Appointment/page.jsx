@@ -1,1 +1,0 @@
-{/* land page of the appointments */}
