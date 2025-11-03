@@ -1,31 +1,34 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useState, useEffect} from 'react';
 import { Upload, ArrowLeft, FileText, Calendar, User, Clipboard, X, CheckCircle, Eye, ArrowRight, Download, Share2 } from 'lucide-react';
 import Calendar22 from '../../../../components/datepicker';
 import Link from 'next/link';
 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import axios from '../../../../utils/api'
 
 export default function PrescriptionForm({backDashboard,goBack,base}) {
-      const router = useRouter();
+    const router = useRouter();
+  const searchParams = useSearchParams();
+  const reportId = searchParams.get("reportId");
   const [formData, setFormData] = useState({
     prescriptionTitle: '',
     dateIssued: '',
     doctorName: '',
     patientName: '',
-    medicines: '',
     file: null
   });
 const [medicines, setMedicines] = useState([
-  { name: '', morning: '', afternoon:'', evening: ''  },
+  { name: '', morning: '', afternoon: '', evening: '' }
 ]);
+
 
   const [dragActive, setDragActive] = useState(false);
   const [fileUploaded, setFileUploaded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showCard, setShowCard] = useState(false);
-
+ const [uploadedReportId, setUploadedReportId] = useState(null);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -69,17 +72,119 @@ const addNewMedicine = () => {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsUploading(true);
-    setTimeout(() => {
-      setIsUploading(false);
+  useEffect(() => {
+      if (!reportId) return;
+  
+      const fetchReport = async () => {
+        try {
+          const { data } = await axios.get(`/patient/prescriptionReports`);
+          const report = data.labReports.find((r) => r.id === parseInt(reportId));
+  
+          if (report) {
+            const { title, date, documentCategory, doctorName, notes, medicines } =
+              report.document_data || {};
+            setFormData((prev) => ({
+              ...prev,
+              prescriptionTitle: title || "",
+              dateIssued: date || "",
+              doctorName: doctorName || "",
+              patientName: patientName || "",
+              medicines : medicines || "" ,
+              notes: notes || "",
+            }));
+          }
+        } catch (error) {
+          console.error("Error loading report:", error);
+        }
+      };
+  
+      fetchReport();
+    }, [reportId]);
+
+ const uploadDocument = async (payload, reportId) => {
+     try {
+       const formDataToSend = new FormData();
+       if (payload.file) formDataToSend.append("file", payload.file);
+       formDataToSend.append("documentType", payload.documentType);
+       formDataToSend.append(
+         "document_data",
+         JSON.stringify(payload.document_data)
+       );
+ 
+       const url = reportId
+              ? `/patient/update-document/${reportId}`
+              : `/patient/upload-report`;
+            const method = reportId ? "put" : "post";
+      
+            const { data } = await axios[method](url, formDataToSend, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+      
+            return data;
+          } catch (error) {
+            console.error("Upload failed:", error.response?.data || error.message);
+            throw error;
+          }
+        };
+   // Handle form submit
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!formData.prescriptionTitle || !formData.file) {
+    alert("Please fill all required fields and upload a file.");
+    return;
+  }
+
+  setIsUploading(true);
+
+  const payload = {
+    documentType: "prescription", 
+   document_data: {
+  title: formData.prescriptionTitle,
+  date: formData.dateIssued,
+  doctorName: formData.doctorName,
+  patientName: formData.patientName,
+medicines: medicines.map(med => ({
+    name: med.name,
+    schedule: {
+        morning: med.morning ?? 0,
+      afternoon: med.afternoon ?? 0,
+      evening: med.evening ?? 0
+    }
+  }))
+},
+
+    file: formData.file,
+  };
+
+  try {
+    const response = await uploadDocument(payload, reportId);
+    // Get new report ID (for newly created report)
+      const newReportId = reportId || response.document?.id;
+
+      // Track new report ID for button usage
+      setUploadedReportId(newReportId);
+
+      // Navigate immediately if it’s a new report
+      if (!reportId && newReportId) {
+        handleViewReport(newReportId);
+      }
+
+      alert(
+        reportId
+          ? "Report updated successfully!"
+          : "Report created successfully!"
+      );
       setShowCard(true);
-    }, 2000);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      alert("Failed to submit form.");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const prescriptionData = {
-    id: 'PRX-' + Math.floor(10000 + Math.random() * 90000),
     title: formData.prescriptionTitle,
     doctor: formData.doctorName,
     patient: formData.patientName,
@@ -88,11 +193,11 @@ const addNewMedicine = () => {
     fileSize: formData.file ? `${(formData.file.size / 1024 / 1024).toFixed(1)} MB` : 'Unknown',
     uploadTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
- const handleViewReport = (id) =>{
-   
-    router.push(`${base}/prescription/${id}`);
-  };
-
+ const handleViewReport = (id = null) => {
+  const reportToView = id || uploadedReportId;
+  if (!reportToView) return;
+  router.push(`/dashboard/patient/records/prescription/${reportToView}`);
+};
 
   const handleDownload = () => alert('Downloading report...');
   const handleShare = () => alert('Opening share options...');
@@ -308,7 +413,7 @@ const addNewMedicine = () => {
                 <InfoRow label="Uploaded" value={`Today at ${prescriptionData.uploadTime}`} />
               </div>
               <div className="p-6 space-y-3">
-                <button onClick={() => handleViewReport(prescriptionData.id)} className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center">
+                <button onClick={() => handleViewReport(reportId)} className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 flex items-center justify-center">
                   <Eye className="w-4 h-4 mr-2" /> View Prescription <ArrowRight className="w-4 h-4 ml-2" />
                 </button>
                 <div className="grid grid-cols-2 gap-3 pt-4">

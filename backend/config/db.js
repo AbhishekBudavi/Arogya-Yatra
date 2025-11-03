@@ -9,7 +9,7 @@ const pool = new Pool({
   port: process.env.DB_PORT,
 });
 
-// Add connection check function
+// Added connection check function
 pool.checkConnection = async () => {
   try {
     await pool.query('SELECT NOW()');

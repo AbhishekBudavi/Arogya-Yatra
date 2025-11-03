@@ -13,7 +13,7 @@ export default function OTPVerification() {
   const [isResendDisabled, setIsResendDisabled] = useState(true);
   const inputRefs = useRef([]);
 
-  // ⏱️ Timer countdown
+  //Time countdown
   useEffect(() => {
     if (timer > 0) {
       const interval = setInterval(() => {

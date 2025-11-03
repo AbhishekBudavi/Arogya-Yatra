@@ -1,4 +1,5 @@
 import LabReportList from '../../../../../../components/patientdashboard/Records/labreport/labreportList'
+import api from '../../../../../../utils/api';
 const LabReportsPage = () => {
   return (
     <LabReportList 

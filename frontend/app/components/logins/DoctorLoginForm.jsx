@@ -2,27 +2,38 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Lock, User, Stethoscope, Heart } from "lucide-react";
 import Link from "next/link";
-
+import { api } from "../../utils/api";
 const DoctorLogin = () => {
-  const [doctorId, setDoctorId] = useState("");
+  const [doctor_id, setDoctorid] = useState("");
   const [password, setPassword] = useState("");
   const [isFocused, setIsFocused] = useState({ id: false, pass: false });
   const [error, setError] = useState("");
 
-  const handleSubmit = (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!doctorId || !password) {
-      setError("Please fill in all fields.");
-      return;
-    }
-
-    // 🔐 You can call your API here
-    console.log("Doctor ID:", doctorId);
-    console.log("Password:", password);
-
     setError("");
-    // Navigate or handle login logic here
+
+    try {
+      const res = await api.post(
+        "/doctor/login",
+        { doctor_id, password },
+        {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        }
+      );
+     console.log("Submitting login:", { doctor_id, password });
+      if (res.data?.token) {
+        localStorage.setItem("token", res.data.token);
+      }
+
+      console.log("Login successful:", res.data);
+      window.location.href = "/dashboard/doctor";
+    } catch (err) {
+      console.error("Login failed:", err.response?.data || err.message);
+      setError(err.response?.data?.message || "Login failed.");
+    }
   };
 
   return (
@@ -63,8 +74,8 @@ const DoctorLogin = () => {
                     type="text"
                     className="w-full px-3 sm:px-4 py-2 outline-none bg-white text-base"
                     placeholder="Enter your doctor id"
-                    value={doctorId}
-                    onChange={(e) => setDoctorId(e.target.value)}
+                    value={doctor_id}
+                    onChange={(e) => setDoctorid(e.target.value)}
                     onFocus={() => setIsFocused({ ...isFocused, id: true })}
                     onBlur={() => setIsFocused({ ...isFocused, id: false })}
                     required
@@ -103,14 +114,14 @@ const DoctorLogin = () => {
                 )}
               </div>
             </div>
-            <Link href="/dashboard/doctor">
+           
               <button
                 type="submit"
                 className={`w-full py-2 sm:py-3 text-base sm:text-lg font-semibold rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white`}
               >
                 Login
               </button>
-            </Link>
+         
             <p className="text-xs sm:text-xs text-gray-500 mt-4 text-center">
               Forgot password?{" "}
               <a href="#" className="text-purple-600 underline font-medium">

@@ -1,49 +1,73 @@
-// models/document.model.js
-const db = require('../config/db');
-const pool = require('../config/db');
-// Insert a new document for a patient
-async function createDocument({ patient_id, document_name, document_url, document_category, document_data, created_by,
-      updated_by }) {
-  const query = `
-    INSERT INTO documents (
-      patient_id,
-      document_name,
-      document_url,
-      document_category,
-      document_data,
-      created_by,
-      updated_by
-    ) VALUES ($1, $2, $3, $4, $5,$6,$7)
-    RETURNING *;
-  `;
+const pool = require("../config/db");
 
-  const values = [
-    patient_id,
+// Insert new document
+const createDocument = async (doc) => {
+  const {
+    document_id,
     document_name,
-    document_url,
-    document_category,
-    document_data ? JSON.stringify(document_data) : null,
+    document_url, 
+    document_type,
+    document_data, 
+    patient_id,
     created_by,
-    updated_by
-  ];
+    updated_by,
+  } = doc;
 
-  const { rows } = await pool.query(query, values);
-  return rows[0];
+  const result = await pool.query(
+    `INSERT INTO documents 
+      (document_id,document_name, document_url, document_type, document_data, patient_id, created_by, updated_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING *`,
+    [document_id ,document_name, document_url, document_type, document_data, patient_id, created_by, updated_by]
+  );
+
+  return result.rows[0];
+};
+
+// Fetch all documents for a patient
+const getDocumentsByPatient = async (patient_id) => {
+  const result = await pool.query(
+    "SELECT * FROM documents WHERE patient_id = $1",
+    [patient_id]
+  );
+  return result.rows;
+};
+
+async function updateDocumentById(id, fields) {
+  const { document_name, document_type, document_url, document_data, updated_by } = fields;
+
+  const result = await pool.query(
+    `UPDATE documents 
+     SET document_name = COALESCE($1, document_name),
+         document_type = COALESCE($2, document_type),
+         document_url = COALESCE($3, document_url),
+         document_data = COALESCE($4, document_data),
+         updated_by = $5,
+         updated_at = NOW()
+     WHERE id = $6
+     RETURNING *`,
+    [document_name, document_type, document_url, document_data, updated_by, id]
+  );
+
+  return result.rows[0];
 }
 
-// Fetch all documents for a specific patient
-async function getDocumentsByPatient(patient_id) {
-  const query = `
-    SELECT *
-    FROM documents
-    WHERE patient_id = $1
-    ORDER BY created_at DESC;
-  `;
-  const { rows } = await pool.query(query, [patient_id]);
-  return rows;
+async function deleteDocumentById(id, patient_id) {
+  const result = await pool.query(
+    `DELETE FROM documents 
+     WHERE id = $1 AND patient_id = $2 
+     RETURNING *`,
+    [id, patient_id]
+  );
+  return result.rows[0];
 }
+
+module.exports = {  };
+
 
 module.exports = {
   createDocument,
-  getDocumentsByPatient
+  getDocumentsByPatient,
+  updateDocumentById,
+  deleteDocumentById
 };

@@ -3,7 +3,7 @@ const db = require('../config/db');
 const HospitalModel = {
   createHospital: async ({ custom_hospital_id, hospital_name, hospital_type, address, pincode, city, state, country, admin_name, admin_mobile_number, password, created_by, updated_by }) => {
     try {
- const now = new Date(); // current timestamp
+ const now = new Date(); // Currnet Time 
 
 const result = await db.query(
   `INSERT INTO hospital (

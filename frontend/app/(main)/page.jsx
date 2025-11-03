@@ -1,20 +1,15 @@
 "use client";
 
-
-
-
-import Section1 from '../sections/homesection-1'
-import Section2 from '../sections/homesection-2'
-import Section3 from '../sections/homesection3'
-import Section4 from '../sections/homesecction4'
+import Section1 from "../sections/homesection-1";
+import Section2 from "../sections/homesection-2";
+import Section3 from "../sections/homesection3";
+import Section4 from "../sections/homesecction4";
 export default function Example() {
   return (
     <div className="bg-sky-50">
-      
-
       <Section1 />
       <Section2 />
-      
+
       <Section3 />
       <Section4 />
 
@@ -70,7 +65,6 @@ export default function Example() {
           </div>
         </div>
       </section>
-  
     </div>
   );
 }

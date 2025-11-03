@@ -1,6 +1,7 @@
 'use client'
 import React from 'react';
-
+import { useState, useEffect } from 'react';
+import api from '../../utils/api'
 import {
   QrCode,
   Calendar,
@@ -42,7 +43,6 @@ import {
 import QRScanner from './Cards/QRScanner'
 import { ScrollArea } from "@/components/ui/scroll-area";
 // Mock QR Scanner Component
-
 const MainContent = () => {
   // Chart data
   const appointmentsData = [
@@ -141,6 +141,63 @@ const MainContent = () => {
     { time: "15:45", patient: "Laxman", type: "Consultation", status: "pending", avatar: "DL" },
   ];
 
+ 
+ const [doctorData, setDoctorData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await api.get("/dashboard/doctor", {
+          withCredentials: true, //nsures cookies are sent
+        });
+        console.log("Fetched data from API:", res.data);
+        setDoctorData(res.data);
+      } catch (err) {
+        console.error(
+          "Dashboard fetch error:",
+          err.response?.data || err.message
+        );
+        setError("Failed to load doctor dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600 text-lg">Loading dashboard...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-red-600 text-lg">{error}</p>
+      </div>
+    );
+  }
+
+  // Data safety check
+  const doctor = doctorData?.doctor;
+  if (!doctor) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-gray-600 text-lg">No doctor data found.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
@@ -153,7 +210,7 @@ const MainContent = () => {
           <div className="relative z-10">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-bold mb-2">Good Morning, Dr. Baloji!</h1>
+                <h1 className="text-4xl font-bold mb-2">{doctor.doctor_name}</h1>
                 <p className="text-blue-100 text-lg mb-4">Ready to make a difference today</p>
              
               </div>

@@ -65,22 +65,22 @@ const AbhaHealthIdPage = () => {
 
   const benefits = [
     {
-      icon: "📱",
+     
       title: "Digital Health Records",
       description: "Store lab reports, prescriptions, and medical history securely"
     },
     {
-      icon: "⚡",
+
       title: "Quick Access",
       description: "Share records instantly via QR code or ABHA number"
     },
     {
-      icon: "💰",
+      
       title: "Cashless Treatment",
       description: "Avail benefits under government health schemes"
     },
     {
-      icon: "🔒",
+
       title: "Privacy Control",
       description: "You decide who can access your health information"
     }

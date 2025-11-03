@@ -1,5 +1,6 @@
 'use client';
 import React, { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   User,
   CreditCard,
@@ -8,28 +9,35 @@ import {
   UserPlus,
   CheckCircle,
   Lock,
+  Hospital,
+  CheckCircle2,
+  SuccessMessage
 } from 'lucide-react';
-
-const specializations = [
-  { value: '', label: 'Select your specialization' },
-  { value: 'general-physician', label: 'General Physician' },
-  { value: 'cardiologist', label: 'Cardiologist' },
-  { value: 'dermatologist', label: 'Dermatologist' },
-  { value: 'pediatrician', label: 'Pediatrician' },
-  { value: 'neurologist', label: 'Neurologist' },
-  { value: 'orthopedic', label: 'Orthopedic Surgeon' },
-  { value: 'gynecologist', label: 'Gynecologist' },
-  { value: 'psychiatrist', label: 'Psychiatrist' },
-  { value: 'oncologist', label: 'Oncologist' },
-];
+import { api } from '../../../../utils/api';
+// const specializations = [
+//   { value: '', label: 'Select your specialization' },
+//   { value: 'general-physician', label: 'General Physician' },
+//   { value: 'cardiologist', label: 'Cardiologist' },
+//   { value: 'dermatologist', label: 'Dermatologist' },
+//   { value: 'pediatrician', label: 'Pediatrician' },
+//   { value: 'neurologist', label: 'Neurologist' },
+//   { value: 'orthopedic', label: 'Orthopedic Surgeon' },
+//   { value: 'gynecologist', label: 'Gynecologist' },
+//   { value: 'psychiatrist', label: 'Psychiatrist' },
+//   { value: 'oncologist', label: 'Oncologist' },
+// ];
 
 const initialForm = {
-  doctorName: '',
-  doctorId: '',
-  specialization: '',
-  address: '',
+  
+  doctor_id: '',
+  doctor_name: '',
+  // hospitalName:'',
+  // specialization: '',
+  // address: '',
+
   password: '',
   confirmPassword: '',
+  about_me:'',
 };
 
 function isStrongPassword(password) {
@@ -42,7 +50,8 @@ export default function DoctorRegistrationForm() {
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-
+  const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -53,16 +62,19 @@ export default function DoctorRegistrationForm() {
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.doctorName.trim()) newErrors.doctorName = 'Doctor name is required';
-    else if (formData.doctorName.trim().length < 2) newErrors.doctorName = 'Minimum 2 characters';
+    if (!formData.doctor_name.trim()) newErrors.doctorName = 'Doctor name is required';
+    else if (formData.doctor_name.trim().length < 2) newErrors.doctorName = 'Minimum 2 characters';
 
-    if (!formData.doctorId.trim()) newErrors.doctorId = 'Doctor ID is required';
-    else if (formData.doctorId.trim().length < 5) newErrors.doctorId = 'Minimum 5 characters';
+    if (!formData.doctor_id.trim()) newErrors.doctorId = 'Doctor ID is required';
+    else if (formData.doctor_id.trim().length < 5) newErrors.doctorId = 'Minimum 5 characters';
 
-    if (!formData.specialization) newErrors.specialization = 'Select a specialization';
+    // if (!formData.specialization) newErrors.specialization = 'Select a specialization';
 
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    else if (formData.address.trim().length < 10) newErrors.address = 'Please provide a full address';
+    //  if (!formData.hospitalName.trim()) newErrors.hospitalName = 'hospitalName is required';
+    // else if (formData.hospitalName.trim().length < 10) newErrors.hospitalName = 'Please provide a full hospitalName';
+
+    // if (!formData.address.trim()) newErrors.address = 'Address is required';
+    // else if (formData.address.trim().length < 10) newErrors.address = 'Please provide a full address';
 
     if (!formData.password) newErrors.password = 'Password is required';
     else if (!isStrongPassword(formData.password))
@@ -76,41 +88,71 @@ export default function DoctorRegistrationForm() {
     return newErrors;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+const handleSubmit = async (e) => { 
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSubmitted(true);
-      setTimeout(() => {
-        setFormData(initialForm);
-        setIsSubmitted(false);
-      }, 2500);
-    } catch {
-      setErrors({ submit: 'Registration failed. Please try again.' });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  setIsLoading(true);
+  setErrors({});
+
+  try {
+    const { confirmPassword, ...payload } = formData; // remove confirmPassword
+    const { data } = await api.post(
+      '/doctor/register',
+      payload,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        withCredentials: true, 
+      }
+    );
+
+    console.log('Registration successful:', data);
+    setIsSubmitted(true);
+
+    setTimeout(() => {
+      router.push('/auth/login/doctor');
+    }, 1000);
+
+  } catch (error) {
+    console.error('Registration error:', error.response?.data || error.message);
+
+    setErrors({
+      submit: error.response?.data?.message || 'Failed to register. Please try again.',
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+function SuccessMessage({ onReset }) {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 flex items-center justify-center">
+      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center animate-fade-in">
+        <CheckCircle2 className="mx-auto h-16 w-16 text-green-500 mb-4 animate-bounce" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Registration Successful!
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Your profile has been created successfully.
+        </p>
+        
+        
+      </div>
+    </div>
+  );
+}
+
 
   if (isSubmitted) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6 font-inter">
-        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
-          <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-8 h-8 text-green-600" />
-          </div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Registration Successful!</h2>
-          <p className="text-gray-600 text-sm">Welcome to our healthcare network.</p>
-        </div>
-      </div>
-    );
+   
+    if (isSubmitted) {
+    return <SuccessMessage onReset={() => {
+      setFormData(FormData);
+      setIsSubmitted(false);
+      setActiveSection("personal");
+      setErrors({});
+    }} />;
+  }
   }
 
   return (
@@ -126,28 +168,29 @@ export default function DoctorRegistrationForm() {
         </div>
 
         {/* Form */}
-        <form className="p-6 sm:p-8 md:p-10 lg:p-12" onSubmit={handleSubmit} autoComplete="off">
+        <form className="p-6 sm:p-8 md:p-10 lg:p-12"  onSubmit={handleSubmit} autoComplete="off">
           <div className="space-y-6">
             {/* Doctor Name */}
-            <Field
-              label="Doctor Name"
-              name="doctorName"
-              value={formData.doctorName}
-              onChange={handleInputChange}
-              placeholder="Enter full name"
-              icon={<User className="h-5 w-5 text-blue-500" />}
-              error={errors.doctorName}
-            />
+          
 
             {/* Doctor ID */}
             <Field
               label="Doctor ID"
-              name="doctorId"
-              value={formData.doctorId}
+              name="doctor_id"
+              value={formData.doctor_id}
               onChange={handleInputChange}
               placeholder="Registration or license number"
               icon={<CreditCard className="h-5 w-5 text-blue-500" />}
               error={errors.doctorId}
+            />
+              <Field
+              label="Doctor Name"
+              name="doctor_name"
+              value={formData.doctor_name}
+              onChange={handleInputChange}
+              placeholder="Enter full name"
+              icon={<User className="h-5 w-5 text-blue-500" />}
+              error={errors.doctorName}
             />
 
             {/* Password */}
@@ -172,10 +215,21 @@ export default function DoctorRegistrationForm() {
               placeholder="Re-enter your password"
               icon={<Lock className="h-5 w-5 text-blue-500" />}
               error={errors.confirmPassword}
-            />
+            /> 
+{/*             
+             <Field
+              label="Hospital Name"
+              name="hospitalName"
+              value={formData.hospitalName}
+              onChange={handleInputChange}
+              placeholder="Valid Hospital Name"
+              icon={<Hospital className="h-5 w-5 text-blue-500" />}
+              error={errors.hospitalName}
+            /> */}
+
 
             {/* Specialization */}
-            <div>
+            {/* <div>
               <label htmlFor="specialization" className="block text-base font-semibold text-gray-700 mb-1">
                 Specialization
               </label>
@@ -211,10 +265,10 @@ export default function DoctorRegistrationForm() {
                   {errors.specialization}
                 </p>
               )}
-            </div>
+            </div> */}
 
             {/* Address */}
-            <div>
+            {/* <div>
               <label htmlFor="address" className="block text-base font-semibold text-gray-700 mb-1">
                 Address
               </label>
@@ -228,6 +282,35 @@ export default function DoctorRegistrationForm() {
                   value={formData.address}
                   onChange={handleInputChange}
                   placeholder="Clinic or hospital address"
+                  rows={3}
+                  className={`w-full pl-11 pr-4 py-2.5 border-2 rounded-lg text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical ${
+                    errors.address
+                      ? 'border-red-300 bg-red-50'
+                      : 'border-gray-200 hover:border-blue-300 focus:border-blue-500'
+                  }`}
+                />
+              </div>
+              {errors.address && (
+                <p className="text-red-600 text-xs mt-1" role="alert">
+                  {errors.address}
+                </p>
+              )}
+            </div> */}
+
+            <div>
+              <label htmlFor="address" className="block text-base font-semibold text-gray-700 mb-1">
+             About Me
+              </label>
+              <div className="relative">
+                <span className="absolute top-3 left-0 pl-3 flex items-start pointer-events-none">
+                  <User className="h-5 w-5 text-blue-500" />
+                </span>
+                <textarea
+                  id="aboutYou"
+                  name="about_me"
+                  value={formData.about_me}
+                  onChange={handleInputChange}
+                  placeholder="On your Specialization"
                   rows={3}
                   className={`w-full pl-11 pr-4 py-2.5 border-2 rounded-lg text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical ${
                     errors.address

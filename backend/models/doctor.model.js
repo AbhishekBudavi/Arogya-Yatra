@@ -1,41 +1,28 @@
-
 const db = require('../config/db');
 
-const DoctorModel = {
-  createDoctor: async ({ custom_doctor_id, hospital_id, first_name, last_name, phone, email, password, specialization, opd_timing, created_by, updated_by }) => {
-    try {
- const now = new Date(); // current timestamp
+const createDoctor = async ({ doctor_id, doctor_name, password, about_me }) => {
+  try {
+    const now = new Date();
+    const result = await db.query(
+      `INSERT INTO doctor (doctor_id, doctor_name, password, about_me, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [doctor_id, doctor_name, password, about_me, now, now]
+    );
 
-const result = await db.query(
-  `INSERT INTO doctor (
-   custom_doctor_id, hospital_id, first_name, last_name, phone, email, password, specialization, opd_timing, created_by, updated_by
-  ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8,
-    $9, $10, $11
-  ) RETURNING *`,
-  [
-custom_doctor_id, hospital_id, first_name, last_name, phone, email, password, specialization, opd_timing, created_by, updated_by
-  ]
-);
-      console.log(result.rows[0]);
-      return result.rows[0];
-    } catch (error) {
-      throw new Error(`Failed to create Doctor: ${error.message}`);
-    }
-  },
-  
-
-  getPatientByPhone: async (phone) => {
-    try {
-      const result = await db.query('SELECT * FROM patients WHERE phone = $1', [phone]);
-      if (!result.rows.length) {
-        return null;
-      }
-      return result.rows[0];
-    } catch (error) {
-      throw new Error(`Failed to get patient: ${error.message}`);
-    }
+    return result.rows[0];
+  } catch (error) {
+    throw new Error(`Failed to create Doctor: ${error.message}`);
   }
 };
 
-module.exports = DoctorModel;
+const findDoctorById = async (doctor_id) => {
+  const result = await db.query(`SELECT * FROM doctor WHERE doctor_id = $1`, [doctor_id]);
+  return result.rows[0];
+};
+
+
+module.exports = {
+  createDoctor,
+  findDoctorById
+};

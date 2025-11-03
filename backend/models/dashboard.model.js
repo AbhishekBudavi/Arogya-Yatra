@@ -14,7 +14,7 @@ const getPatientDetail = async (patient_id) => {
 
 async function logDashboardVisit(patientId) {
   const query = 'INSERT INTO dashboard_visits (patient_id) VALUES ($1)';
-  await db.query(query, [patientId]); // ✅ Use db instead of pool
+  await db.query(query, [patientId]); 
 }
 
 async function getRecentVisits(patientId, limit = 10) {
@@ -25,7 +25,7 @@ async function getRecentVisits(patientId, limit = 10) {
     ORDER BY visited_at DESC
     LIMIT $2
   `;
-  const result = await db.query(query, [patientId, limit]); // ✅ Use db instead of pool
+  const result = await db.query(query, [patientId, limit]);
   return result.rows;
 }
 

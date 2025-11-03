@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import {
   ArrowLeft, Download, Edit, Trash2, RefreshCw, Share2, Sparkles, CheckCircle,
   Clock, User, Calendar, FileText, Eye
 } from 'lucide-react';
 import Link from 'next/link';
+import axios from 'axios';
 
 export default function PrescriptionDetails() {
   const params = useParams();
-  const prescriptionId = params?.prescriptionId;
+  const router = useRouter();
+  const prescriptionId = params?.reportId;
   const [prescriptionData, setPrescriptionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -18,24 +20,43 @@ export default function PrescriptionDetails() {
   const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
-    if (!prescriptionId) return;
-
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`/api/prescription/${prescriptionId}`);
-        if (!res.ok) throw new Error('Failed to fetch prescription');
-        const data = await res.json();
-        setPrescriptionData(data);
-      } catch (err) {
-        console.error('Error fetching prescription:', err);
-        setPrescriptionData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [prescriptionId]);
+   const fetchReport = async () => {
+     try {
+       const res = await axios.get(`/patient/prescriptionReports`);
+       const allReports = res.data.prescriptionReports;
+       const report = allReports.find(r => r.id === parseInt(prescriptionId));
+ 
+       if (!report) {
+         throw new Error('Report not found');
+       }
+ 
+       setPrescriptionData(report);
+     } catch (err) {
+       console.error('Error fetching report:', err);
+       setPrescriptionData(null);
+     } finally {
+       setLoading(false);
+     }
+   };
+ 
+   if (prescriptionId) fetchReport();
+ }, [prescriptionId]);
+ const handleEdit = () => {
+    // Redirect to form page with reportId as query param
+    router.push(`/dashboard/patient/records/prescription/prescription-report?prescriptionId=${prescriptionId}`);
+  };
+const handleDeleteReport = async () => {
+  if (!confirm("Are you sure you want to delete this report?")) return;
+    try {
+      await api.delete(`/patient/delete-document/${prescriptionId}`);
+      setShowDeleteModal(false);
+      alert("Report deleted successfully!");
+      router.push("/dashboard/patient/records/prescription/prescription-records");
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete report.");
+    }
+  };
 
   const handleRegenerateSummary = () => {
     setIsRegenerating(true);
@@ -50,10 +71,7 @@ export default function PrescriptionDetails() {
     alert('Link copied to clipboard!');
   };
 
-  const handleDelete = () => {
-    setShowDeleteModal(false);
-    alert('Prescription deleted!');
-  };
+
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!prescriptionData) return <div className="min-h-screen flex items-center justify-center text-red-500">Prescription not found.</div>;
@@ -73,10 +91,7 @@ export default function PrescriptionDetails() {
             <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-bold">Prescription Info</h2>
-                <div className="flex items-center">
-                  <CheckCircle className="w-4 h-4 text-green-500 mr-1" />
-                  <span className="text-sm text-green-600 font-medium">{prescriptionData.status}</span>
-                </div>
+             
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -86,43 +101,76 @@ export default function PrescriptionDetails() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Title</p>
-                  <p className="text-sm">{prescriptionData.title}</p>
+                  <p className="text-sm">{prescriptionData.document_data?.title}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Doctor</p>
-                  <p className="text-sm">{prescriptionData.doctorName}</p>
+                  <p className="text-sm">{prescriptionData.document_data?.doctorName}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Date</p>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-2" />
-                    <p className="text-sm">{prescriptionData.date}</p>
+                    <p className="text-sm">{prescriptionData.document_data?.date}</p>
                   </div>
                 </div>
               </div>
             </div>
+            <div className="space-y-3">
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Uploaded By</label>
+                                <div className="flex items-center">
+                                  <User className="w-4 h-4 text-gray-400 mr-1 mt-3" />
+                                  <p className="text-sm text-gray-900 pt-1">{prescriptionData.created_by}</p>
+                                </div>
+                              </div>
+                            
+                              <div>
+                                <label className="text-sm font-medium text-gray-500">Last Updated</label>
+                                <div className="flex items-center">
+                                  <Clock className="w-4 h-4 text-gray-400 mr-1 mt-3" />
+                                  <p className="text-sm text-gray-900 pt-1 ">{new Date(prescriptionData.updated_at).toLocaleString()}</p>
+                                </div>
+                              </div>
+                            </div>
 
-            <div className="bg-white p-6 mt-4 rounded-lg shadow-sm border border-gray-200">
-              <h2 className="text-lg font-semibold mb-4">Prescription File</h2>
-              <div className="border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
+           <div className="pt-5">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Uploaded Report File</h2>
+              <div className="border border-gray-200 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center">
                     <FileText className="w-5 h-5 text-blue-500 mr-2" />
                     <div>
-                      <p className="text-sm">{prescriptionData.fileName}</p>
-                      <p className="text-xs text-gray-500">{prescriptionData.fileSize}</p>
+                      <p className="text-sm font-medium text-gray-900">{prescriptionData.document_name}</p>
+                
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button className="text-sm text-gray-600 mr-3 flex items-center">
-                      <Eye className="w-4 h-4 mr-2" /> Preview
+                  <div className="flex items-center space-x-2">
+                     <Link href={`http://localhost:5000${prescriptionData.document_url}`} >
+                    <button className="flex items-center pr-3 text-gray-600 hover:text-gray-900 text-sm">
+                      <Eye className="w-4 h-4 mr-1" />
+                      Preview
                     </button>
-                    <button className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">
-                      <Download className="w-4 h-4 mr-1" /> Download
+                    </Link>
+                      <Link   href={`http://localhost:5000${prescriptionData.document_url}`} >
+
+                    <button className="flex items-center bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors">
+                      <Download className="w-4 h-4 mr-1" />
+                      Download
                     </button>
+                    </Link>
+                  </div>
+                </div>
+                <div className="bg-gray-50 rounded border-2 border-dashed border-gray-200 h-48 flex items-center justify-center">
+                  <div className="text-center">
+                    <FileText className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">PDF Preview</p>
+                    <p className="text-xs text-gray-400">Click preview to view full document</p>
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
 
@@ -152,7 +200,9 @@ export default function PrescriptionDetails() {
 
         {/* Actions */}
         <div className="mt-6 flex gap-3 flex-wrap">
-          <button className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          <button 
+          onClick={handleEdit}
+          className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
             <Edit className="w-4 h-4 mr-2" /> Edit
           </button>
           <button
@@ -205,7 +255,7 @@ export default function PrescriptionDetails() {
             </p>
             <div className="flex gap-2">
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteReport}
                 className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
               >
                 Delete

@@ -2,7 +2,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import Link from 'next/link'
 
-// --- Custom SVG Icons (replace with your own if needed) ---
+// --- Custom SVG Icons
 const ICONS = [
   <svg key="stethoscope" width="32" height="32" fill="none"><circle cx="16" cy="16" r="15" stroke="#2EC4B6" strokeWidth="2"/><path d="M16 22c3 0 5-2 5-5V8" stroke="#2EC4B6" strokeWidth="2" strokeLinecap="round"/><circle cx="16" cy="8" r="2" fill="#2EC4B6"/></svg>,
   <svg key="heart" width="32" height="32" fill="none"><path d="M16 29s-9-7.5-9-13.5A6 6 0 0 1 16 7a6 6 0 0 1 9 8.5C25 21.5 16 29 16 29z" stroke="#3A86FF" strokeWidth="2" fill="#fff"/></svg>,

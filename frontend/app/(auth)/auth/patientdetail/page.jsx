@@ -906,7 +906,7 @@ const handleSubmit = async (e) => {
       }
     );
 
-    console.log('✅ Registration successful:', data);
+    console.log('Registration successful:', data);
     setIsSubmitted(true);
 
     // Optional: show success message before redirect
@@ -915,7 +915,7 @@ const handleSubmit = async (e) => {
     }, 1500);
 
   } catch (error) {
-    console.error('❌ Registration error:', error.response?.data || error.message);
+    console.error(' Registration error:', error.response?.data || error.message);
 
     setErrors({
       submit: error.response?.data?.message || 'Failed to register. Please try again.',

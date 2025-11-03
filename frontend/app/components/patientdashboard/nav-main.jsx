@@ -84,7 +84,7 @@ const Navbar = ({ collapsed, toggleSidebar, setSidebarOpen }) => {
                   )
 }
               {/*Need too add animation */}
-              <span className="text-2xl pl-3">👋</span>
+              {/* <span className="text-2xl pl-3"></span> */}
             </div>
           </div>
 

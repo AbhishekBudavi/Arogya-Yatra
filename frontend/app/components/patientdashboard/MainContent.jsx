@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useEffect,useState} from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
   FileText,
@@ -17,32 +17,35 @@ import {
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import api from '../../utils/api'
+import api from "../../utils/api";
 const MainContent = () => {
-    const [patientData, setPatientData] = useState(null);
+  const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-useEffect(() => {
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    setError('');
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError("");
 
-    try {
-      const res = await api.get('/patient/dashboard');
-      console.log('Fetched data from API:', res.data); // Axios already gives data
-      setPatientData(res.data);
-    } catch (err) {
-      console.error('Dashboard fetch error:', err.response?.data || err.message);
-      setError('Failed to load patient dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const res = await api.get("/patient/dashboard");
+        console.log("Fetched data from API:", res.data); // Axios already gives data
+        setPatientData(res.data);
+      } catch (err) {
+        console.error(
+          "Dashboard fetch error:",
+          err.response?.data || err.message
+        );
+        setError("Failed to load patient dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  fetchDashboardData();
-}, []);
+    fetchDashboardData();
+  }, []);
 
-console.log("Patient data", patientData);
+  console.log("Patient data", patientData);
 
   const mainCards = [
     {
@@ -133,11 +136,11 @@ console.log("Patient data", patientData);
             <div className="relative z-10">
               <div className="flex items-center justify-between">
                 <div>
-                  {patientData && 
-                  <h1 className="text-4xl font-bold mb-2">
-                    Welcome back {patientData.patient?.first_name}
-                  </h1>
-}
+                  {patientData && (
+                    <h1 className="text-4xl font-bold mb-2">
+                      Welcome back {patientData.patient?.first_name}
+                    </h1>
+                  )}
                   <p className="text-blue-100 text-lg">
                     Your ArogyaYatra health journey continues here
                   </p>
@@ -236,7 +239,6 @@ console.log("Patient data", patientData);
                   Recent Activity
                 </h2>
               </div>
-             
             </div>
 
             <ScrollArea className="h-72 rounded-md border border-gray-200">

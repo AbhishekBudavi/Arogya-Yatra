@@ -25,7 +25,7 @@ import {
   X,
   Plus,
 } from "lucide-react";
-import { useRouter } from 'next/navigation';
+import { useRouter,  usePathname } from 'next/navigation';
 const RecordsLandingPage = ({basePath,visibleCards}) => {
   const [recordCounts] = React.useState({
     labReports: 2,
@@ -34,14 +34,21 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
     medicalHistory: 2,
     medicalExpenses: 0,
     Vaccination: 1,
-
   });
 
+ 
+
+   const router = useRouter();
+   const pathname = usePathname();
   const [showAddModal, setShowAddModal] = React.useState(false);
 
-  const medicalRecords = [
+
+  const isPatientRoute = pathname.includes("/patient/records");
+
+  // base medical records
+  let medicalRecords = [
     {
-    id:"Lab Reports",
+      id: "Lab Reports",
       title: "Lab Reports",
       count: recordCounts.labReports,
       icon: TestTube,
@@ -52,8 +59,8 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       href: `${basePath}/labreports/report-records`,
       hrefModal: `${basePath}/labreports/report-form`
     },
-    { 
-    id:"Prescription",
+    {
+      id: "Prescription",
       title: "Prescriptions",
       count: recordCounts.prescriptions,
       icon: Pill,
@@ -61,11 +68,11 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       bgColor: "bg-green-50",
       iconColor: "text-green-600",
       description: "Medications and dosage instructions",
-        href:`${basePath}/prescription/prescription-records`,
-         hrefModal:`${basePath}/prescription/prescription-form`
+      href: `${basePath}/prescription/prescription-records`,
+      hrefModal: `${basePath}/prescription/prescription-form`
     },
     {
-        id:"Doctor Notes",
+      id: "Doctor Notes",
       title: "Doctor Notes",
       count: recordCounts.doctorNotes,
       icon: ClipboardList,
@@ -73,11 +80,11 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       bgColor: "bg-purple-50",
       iconColor: "text-purple-600",
       description: "Consultation notes and observations",
-        href:`${basePath}/doctor-notes/note-records`,
-         hrefModal:`${basePath}/doctor-notes/note-form`
+      href: `${basePath}/doctor-notes/note-records`,
+      hrefModal: `${basePath}/doctor-notes/note-form`
     },
     {
-    id:"Medical History",
+      id: "Medical History",
       title: "Medical History",
       count: recordCounts.medicalHistory,
       icon: History,
@@ -85,11 +92,11 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       bgColor: "bg-orange-50",
       iconColor: "text-orange-600",
       description: "Past medical conditions and treatments",
-        href:`${basePath}/medicalHistory`,
-         hrefModal:`${basePath}records/medicalHistory`
+      href: `${basePath}/medicalHistory`,
+      hrefModal: `${basePath}records/medicalHistory`
     },
     {
-        id:"Medical Expenses",
+      id: "Medical Expenses",
       title: "Medical Expenses",
       count: recordCounts.medicalExpenses,
       icon: DollarSign,
@@ -97,11 +104,11 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       bgColor: "bg-pink-50",
       iconColor: "text-pink-600",
       description: "Bills, insurance claims, and expenses",
-        href:`${basePath}/medical-expence/expence-records`,
-         hrefModal:`${basePath}/medical-expence/expence-form`
+      href: `${basePath}/medical-expence/expence-records`,
+      hrefModal: `${basePath}/medical-expence/expence-form`
     },
     {
-        id:"Vaccination",
+      id: "Vaccination",
       title: "Vaccination",
       count: recordCounts.Vaccination,
       icon: Syringe,
@@ -109,14 +116,21 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       bgColor: "bg-red-50",
       iconColor: "text-red-600",
       description: "Vaccination records and schedules",
-        href:`${basePath}/vaccination/vaccination-records`,
-         hrefModal:`${basePath}records/vaccination/vaccination-form`
-    },
+      href: `${basePath}/vaccination/vaccination-records`,
+      hrefModal: `${basePath}records/vaccination/vaccination-form`
+    }
   ];
-const router = useRouter()
-   const handleAddRecord = (recordType) => {
+
+  // Hide Doctor Notes in patient routes
+
+
+  const medicalRecordsForModal = isPatientRoute
+    ? medicalRecords.filter(r => r.id !== "Doctor Notes")
+    : medicalRecords;
+
+  const handleAddRecord = (recordType) => {
     const record = medicalRecords.find(r => r.title === recordType);
-    if (record?.href) {
+    if (record?.hrefModal) {
       setShowAddModal(false);
       router.push(record.hrefModal);
     }
@@ -151,7 +165,7 @@ const router = useRouter()
         {/* Medical Records Section */}
         <div className="mb-8">
           <div className="grid grid-cols-3 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-            {medicalRecords
+            { medicalRecords
              .filter(record => visibleCards.includes(record.id))
             .map((record, index) => {
               const IconComponent = record.icon;
@@ -258,58 +272,59 @@ const router = useRouter()
       </div>
 
       {/* Add Record Modal - Slide up from bottom */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
-          {/* Overlay */}
-          <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowAddModal(false)}
-          />
-          
-          {/* Modal Content */}
-          <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl animate-[slideUp_0.3s_ease-out] max-h-[80vh] overflow-hidden">
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Add New Record</h2>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-              >
-                <X className="h-6 w-6 text-gray-500" />
-              </button>
-            </div>
+    {showAddModal && (
+  <div className="fixed inset-0 z-50 flex items-end justify-center">
+    {/* Overlay */}
+    <div 
+      className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      onClick={() => setShowAddModal(false)}
+    />
+    
+    {/* Modal Content */}
+    <div className="relative w-full max-w-md bg-white rounded-t-3xl shadow-2xl animate-[slideUp_0.3s_ease-out] max-h-[80vh] overflow-hidden">
+      {/* Header */}
+      <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-gray-900">Add New Record</h2>
+        <button
+          onClick={() => setShowAddModal(false)}
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+        >
+          <X className="h-6 w-6 text-gray-500" />
+        </button>
+      </div>
 
-            {/* Content */}
-            <div className="p-6 pb-8 space-y-4 max-h-[calc(80vh-100px)] overflow-y-auto">
-              <p className="text-gray-600 mb-6">Choose the type of record you'd like to add:</p>
-              
-              {medicalRecords.map((record, index) => {
-  const IconComponent = record.icon;
-  return (
-    <div key={record.id} className="pb-4">
-      <button
-        onClick={() => handleAddRecord(record.title)}
-        className="w-full p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 hover:shadow-md group"
-      >
-        <div className="flex items-center space-x-4">
-          <div className={`p-3 rounded-xl bg-gradient-to-r ${record.color} opacity-80 group-hover:opacity-100 transition-opacity`}>
-            <IconComponent className="h-4 w-4 text-white" />
-          </div>
-          <div className="flex-1 text-left pl-2">
-            <h3 className="font-semibold text-gray-900 mb-1">{record.title}</h3>
-            <p className="text-sm text-gray-500">{record.description}</p>
-          </div>
-          <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
-        </div>
-      </button>
+      {/* Content */}
+      <div className="p-6 pb-8 space-y-4 max-h-[calc(80vh-100px)] overflow-y-auto">
+        <p className="text-gray-600 mb-6">Choose the type of record you'd like to add:</p>
+        
+        { medicalRecordsForModal
+          .filter(record => !isPatientRoute || record.id !== "Doctor Notes") // Apply condition here
+          .map((record, index) => {
+            const IconComponent = record.icon;
+            return (
+              <div key={record.id} className="pb-4">
+                <button
+                  onClick={() => handleAddRecord(record.title)}
+                  className="w-full p-4 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 hover:shadow-md group"
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 rounded-xl bg-gradient-to-r ${record.color} opacity-80 group-hover:opacity-100 transition-opacity`}>
+                      <IconComponent className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1 text-left pl-2">
+                      <h3 className="font-semibold text-gray-900 mb-1">{record.title}</h3>
+                      <p className="text-sm text-gray-500">{record.description}</p>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                  </div>
+                </button>
+              </div>
+            );
+          })}
+      </div>
     </div>
-  );
-})}
-
-            </div>
-          </div>
-        </div>
-      )}
+  </div>
+)}
 
       {/* Custom CSS for slide-up animation */}
       <style jsx>{`

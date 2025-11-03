@@ -20,7 +20,7 @@ const QRScanner = () => {
   const streamRef = useRef(null);
   const scanIntervalRef = useRef(null);
 
-  // 🚀 QR code detection
+  //  QR code detection
   const detectQRCode = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -50,7 +50,7 @@ const QRScanner = () => {
     setScanResult(patientData);
   };
 
-  // 🧪 Simulated QR parsing (replace with your logic)
+  // Simulated QR parsing (replace with your logic)
   const parsePatientQR = (qrData) => {
     const mockPatients = [
       { patientId: 'PAT-2024-001', name: 'Abhi Budavi', age: 45, condition: 'Routine Checkup' },

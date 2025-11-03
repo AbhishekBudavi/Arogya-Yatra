@@ -19,6 +19,7 @@ const ReportData = [
   {
     id: 'RPT-00892',
     title: 'Urine Test - July 2025',
+    documentType: 'labreport',
     type: 'Urine Test',
     date: '2025-07-06',
     uploadedBy: 'Doctor',

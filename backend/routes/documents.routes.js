@@ -1,13 +1,13 @@
-// routes/document.route.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const verifyJWT = require('../middlewares/verifyJWT');
-const { createDocumentHandler } = require('../controllers/documents.controller');
+const upload = require("../middlewares/upload");
+const DocumentController = require("../controllers/documents.controller");
+const verifyJWT = require("../middlewares/verifyJWT"); 
 
+// Upload document (with file)
+router.post("/upload-report", upload.single("file"), verifyJWT, DocumentController.createDocumentHandler);
 
-// Create document (patient uploads document)
-router.post('/', verifyJWT, createDocumentHandler);
+// Get all documents for a patient
+router.get("/:patient_id", verifyJWT, DocumentController.getPatientDocumentsHandler);
 
-
-
-module.exports = router;
+module.exports = router;  
