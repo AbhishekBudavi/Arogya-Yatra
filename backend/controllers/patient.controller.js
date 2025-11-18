@@ -5,9 +5,10 @@ const  { getPatientDetail }= require('../models/dashboard.model');
 const  { logDashboardVisit }=require('../models/dashboard.model')
 const  { getRecentVisits }= require('../models/dashboard.model');
 const { createDocument, getDocumentsByPatient,updateDocumentById,
-  deleteDocumentById } = require("../models/documents.model");
+  deleteDocumentById, countDocumentsByType } = require("../models/documents.model");
 const { getLabReportsByPatient } = require('../models/labreports.model');
 const {getPrescriptionReportsByPatient} = require('../models/prescriptionReports.model')
+const {getExpensesDetailByPatient } = require('../models/medicalExpenses.model')
 const MedicalHistory = require('../models/medicalHistory.model');
 const {toCamelCase}= require('../utils/normalizeKeys')
 const QRCodeModel = require('../models/qrcode.model');
@@ -533,7 +534,25 @@ async function getPrescriptionReportsHandler(req, res) {
     return res.status(500).json({ error: "Internal server error" });
   }
 }
+async function getMedicalExpensesHandler(req, res) {
+  try {
+    const { patient_id } = req.user; // Assuming JWT middleware sets req.user
 
+    if (!patient_id) {
+      return res.status(401).json({ error: "Unauthorized: Patient ID missing" });
+    }
+
+    const medicalExpenses = await getExpensesDetailByPatient(patient_id);
+
+    return res.status(200).json({
+      message: "Lab reports fetched successfully",
+      medicalExpenses,
+    });
+  } catch (error) {
+    console.error("Error fetching lab reports:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
 const getMedicalHistory = async (req, res) => {
   try {
     const { patient_id } = req.user;
@@ -561,6 +580,25 @@ const createMedicalHistory = async (req, res) => {
   } catch (err) {
     console.error("Error creating medical history:", err);
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+const getDocumentCounts = async (req, res) => {
+  try {
+    const { patient_id } = req.user; // ✅ patient_id extracted from JWT middleware
+
+    if (!patient_id) {
+      return res.status(401).json({ error: "Unauthorized: patient_id missing in token" });
+    }
+
+    const counts = await countDocumentsByType(patient_id);
+
+    return res.status(200).json({
+      message: "Document counts fetched successfully",
+      counts,
+    });
+  } catch (err) {
+    console.error("Error fetching document counts:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -613,12 +651,12 @@ const updateMedicalHistory = async (req, res) => {
   } catch (err) {
     console.error('Error generating QR code token:', err);
     res.status(500).json({ success: false, message: 'Server error' });
-  }
-};
+    }
+  };
 
-// Doctor scans QR code: verify token and return patient data
-const getPatientDataByToken = async (req, res) => {
-  try {
+  // Doctor scans QR code: verify token and return patient data
+  const getPatientDataByToken = async (req, res) => {
+    try {
     const { token } = req.query;
     const doctorId = req.user; // JWT of logged-in doctor
 
@@ -628,6 +666,7 @@ const getPatientDataByToken = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing token' });
     }
 
+    // Query for unexpired token
     const result = await db.query(
       'SELECT * FROM qr_tokens WHERE token=$1 AND used=false AND expires_at > NOW()',
       [tokenValue]
@@ -639,16 +678,23 @@ const getPatientDataByToken = async (req, res) => {
 
     const qrToken = result.rows[0];
 
-    // Mark token as used (single-use). Keep the update simple so it works
-    // whether or not the table has extra columns like used_by/used_at.
-    await db.query('UPDATE qr_tokens SET used=true WHERE token=$1', [tokenValue]);
+    // Ensure the token is valid for at least one hour
+const tokenExpirationTime = 60 * 60; // 1 hour in seconds
 
-    // Fetch patient data
-    const patient = await QRCodeModel.getPatientById(qrToken.patient_id);
-    if (!patient) return res.status(404).json({ success: false, message: 'Patient not found' });
+// Check if the token is still valid
+if (Date.now() / 1000 - qrToken.created_at > tokenExpirationTime) {
+    return res.status(400).json({ success: false, message: 'Token has expired' });
+}
 
-    res.json({ success: true, patient });
-  } catch (err) {
+// Mark token as used (single-use)
+await db.query('UPDATE qr_tokens SET used=true WHERE token=$1', [tokenValue]);
+
+// Fetch patient data
+const patient = await QRCodeModel.getPatientById(qrToken.patient_id);
+if (!patient) return res.status(404).json({ success: false, message: 'Patient not found' });
+
+res.json({ success: true, patient });
+    } catch (err) {
     console.error('Error scanning QR code:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
@@ -673,6 +719,8 @@ getPrescriptionReportsHandler,
   createMedicalHistory,
   updateMedicalHistory,
   getPatientQRCodeData,
- getPatientDataByToken
+ getPatientDataByToken,
+ getDocumentCounts,
+ getMedicalExpensesHandler
 
 };

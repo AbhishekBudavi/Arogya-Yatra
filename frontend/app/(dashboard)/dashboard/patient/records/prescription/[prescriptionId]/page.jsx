@@ -7,12 +7,14 @@ import {
   Clock, User, Calendar, FileText, Eye
 } from 'lucide-react';
 import Link from 'next/link';
+import api from '../../../../../../utils/api';
 import axios from 'axios';
 
 export default function PrescriptionDetails() {
   const params = useParams();
   const router = useRouter();
-  const prescriptionId = params?.reportId;
+  // The route folder is [prescriptionId] so read that param. Keep reportId as fallback
+  const prescriptionId = params?.prescriptionId ?? params?.reportId;
   const [prescriptionData, setPrescriptionData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -22,7 +24,7 @@ export default function PrescriptionDetails() {
   useEffect(() => {
    const fetchReport = async () => {
      try {
-       const res = await axios.get(`/patient/prescriptionReports`);
+  const res = await api.get(`/patient/prescriptionReports`);
        const allReports = res.data.prescriptionReports;
        const report = allReports.find(r => r.id === parseInt(prescriptionId));
  

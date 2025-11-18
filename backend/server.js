@@ -21,6 +21,7 @@ const {
   getRecentVisitsController,
   createDocumentHandler,
   getLabReportsHandler,
+getMedicalExpensesHandler,
   updateDocumentHandler,
   deleteDocumentHandler,
   getPrescriptionReportsHandler,
@@ -29,7 +30,10 @@ const {
   updateMedicalHistory,
   deleteMedicalHistory,
  getPatientQRCodeData,
- getPatientDataByToken
+ getPatientDataByToken,
+ getSelectedPatient,
+ getDocumentCounts,
+ 
 } = require('./controllers/patient.controller');
 const {registerDoctor, loginDoctor, getDoctorDashboard} = require('./controllers/doctor.controller');
 
@@ -48,7 +52,8 @@ const { registerHospital } = require('./controllers/hospital.controller');
 const app = express();
 
 // Middleware
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cors({
   origin: 'http://localhost:3000', // frontend URL
   credentials: true           // allow cookies/JWT
@@ -66,21 +71,22 @@ app.use(cookieParser());
 
 
 // Patient routes
-app.post('/api/patient/register',verifyJWT("patient"),registerPatient);
+app.post('/api/patient/register', verifyJWT("patient"), registerPatient);
 app.post('/api/patient/send-otp', sendOTP);
 app.post('/api/patient/verify-otp', verifyOTP);
-app.get('/api/patients',verifyJWT("patient"), getPatientsByPhone)
-app.post('/api/patient/select-profile',verifyJWT("patient"),selectPatient);
-app.get('/api/patient/dashboard',verifyJWT("patient"), getPatientDashboard)
-app.get('/api/patient/dashboard',verifyJWT("patient"),getRecentVisitsController )
+app.get('/api/patients', verifyJWT("patient"), getPatientsByPhone);
+app.get('/api/patient/getPatientDetail', verifyJWT("patient"), getSelectedPatient);
+app.post('/api/patient/select-profile', verifyJWT("patient"), selectPatient);
+app.get('/api/patient/dashboard', verifyJWT("patient"), getPatientDashboard);
+app.get('/api/patient/recent-visits', verifyJWT("patient"), getRecentVisitsController);
 
 // Doctor & Hospital routes
-app.post('/api/doctor/register', registerDoctor);
 app.post('/api/hospital/register', registerHospital);
 
 //documents routes
 
 const upload = require("./middlewares/upload"); // Multer config
+const { verify } = require('crypto');
 
 
 app.post(
@@ -94,9 +100,10 @@ app.put("/api/patient/update-document/:id", verifyJWT("patient"), upload.single(
 
 // DELETE document
 app.delete("/api/patient/delete-document/:id", verifyJWT("patient"), deleteDocumentHandler);
-
+app.get('/api/patient/counts', verifyJWT("patient"), getDocumentCounts)
 app.get('/api/patient/labreports',verifyJWT("patient"), getLabReportsHandler)
 app.get('/api/patient/prescriptionReports',verifyJWT("patient"), getPrescriptionReportsHandler)
+app.get('/api/patient/medical-expenses', verifyJWT("patient"), getMedicalExpensesHandler)
 app.get('/api/patient/medical-history',verifyJWT("patient"), getMedicalHistory);
 app.post('/api/patient/medical-history',verifyJWT("patient"), createMedicalHistory);
 app.put('/api/patient/medical-history',verifyJWT("patient"), updateMedicalHistory);

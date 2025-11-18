@@ -62,12 +62,32 @@ async function deleteDocumentById(id, patient_id) {
   return result.rows[0];
 }
 
-module.exports = {  };
+
+
+const countDocumentsByType = async (patientId) => {
+  const query = `
+    SELECT
+      COUNT(*) FILTER (WHERE document_type = 'labReport') AS "labReport",
+      COUNT(*) FILTER (WHERE document_type = 'prescription') AS "prescription",
+      COUNT(*) FILTER (WHERE document_type = 'medicalExpenses') AS "medicalExpenses",
+      COUNT(*) FILTER (WHERE document_type = 'vaccination') AS "vaccination"
+    FROM documents
+    WHERE patient_id = $1;
+  `;
+
+  const { rows } = await pool.query(query, [patientId]);
+  return rows[0];
+};
+
+module.exports = { countDocumentsByType };
+
+
 
 
 module.exports = {
   createDocument,
   getDocumentsByPatient,
   updateDocumentById,
-  deleteDocumentById
+  deleteDocumentById,
+  countDocumentsByType
 };

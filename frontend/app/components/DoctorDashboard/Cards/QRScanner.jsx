@@ -6,14 +6,14 @@ import jsQR from 'jsqr';
 import {
   QrCode, CheckCircle, X, User, UserPlus
 } from 'lucide-react';
-
+import { api } from 'app/utils/api';
 const QRScanner = () => {
   const router = useRouter();
 
   const [isScanning, setIsScanning] = useState(false);
   const [scanResult, setScanResult] = useState(null);
   const [error, setError] = useState('');
-  const [hasPermission, setHasPermission] = useState(null);
+  // Removed hasPermission state as it is not used
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -44,20 +44,37 @@ const QRScanner = () => {
     }
   }, []);
 
-  const handleQRDetected = (qrData) => {
-    stopScanning();
-    const patientData = parsePatientQR(qrData);
-    setScanResult(patientData);
-  };
-
-  // Simulated QR parsing (replace with your logic)
-  const parsePatientQR = (qrData) => {
-    const mockPatients = [
-      { patientId: 'PAT-2024-001', name: 'Abhi Budavi', age: 45, condition: 'Routine Checkup' },
   
-    ];
-    return mockPatients[Math.floor(Math.random() * mockPatients.length)];
-  };
+const parsePatientQR = async (qrData) => {
+  const token = qrData.includes('token=') 
+    ? qrData.split('token=')[1]
+    : qrData;
+
+  console.log("Extracted token:", token);
+  try {
+    const response = await api.get(`/patient/scan-patient?token=${token}`, {
+      withCredentials: true,
+    });
+    return response.data.patient; // Return the full patient object
+  } catch (err) {
+    console.error('Error fetching patient data:', err.response?.data || err.message);
+    setError('Failed to fetch patient data. Please check the QR or login as doctor.');
+    return null;
+  }
+};
+
+const handleQRDetected = async (qrData) => {
+  stopScanning();
+  setError('');
+
+  const patientData = await parsePatientQR(qrData);
+
+  if (patientData) {
+    setScanResult(patientData); // Set the full patient object
+  } else {
+    setError('Invalid or expired QR token.');
+  }
+};
 
   const startScanning = async () => {
     try {
@@ -69,7 +86,7 @@ const QRScanner = () => {
       });
 
       streamRef.current = stream;
-      setHasPermission(true);
+      // Removed setHasPermission as it is no longer needed
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -85,6 +102,7 @@ const QRScanner = () => {
       setHasPermission(false);
     }
   };
+  console.log(`the patient result ${scanResult}`)
 
   const stopScanning = () => {
     setIsScanning(false);
@@ -110,8 +128,8 @@ const QRScanner = () => {
   };
 
  const handleNavigateToPatient = () => {
-  if (scanResult?.patientId) {
-    router.push(`/DoctorToPatient/patient/${scanResult.patientId}`);
+  if (scanResult?.patient_id) {
+    router.push(`/DoctorToPatient/patient/${scanResult.patient_id}`);
   }
 };
 
@@ -197,25 +215,26 @@ const QRScanner = () => {
         <div className="space-y-4">
           {scanResult ? (
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6">
-              <div className="flex items-center space-x-4 mb-4">
+              <div className="flex items-center flex-cols-2 gap-4 space-x-4 mb-4">
                 <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
                   <User className="h-6 w-6 text-green-600" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-gray-800">{scanResult.name}</h4>
-                  <p className="text-sm text-gray-600">ID: {scanResult.patientId}</p>
+                  <h4 className="font-semibold text-gray-800">{scanResult.first_name +"  "+ scanResult.last_name}</h4>
+                  <p className="text-sm text-gray-600">ID: {scanResult.patient_id}</p>
+                </div>
+                 <div className='pl-6'>
+                  <span className="text-gray-500">Age:</span>
+                  <span className="ml-2 font-medium">{scanResult.medical_history_age}</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-500">Age:</span>
-                  <span className="ml-2 font-medium">{scanResult.age}</span>
-                </div>
-                <div>
+               
+                {/* <div>
                   <span className="text-gray-500">Visit:</span>
                   <span className="ml-2 font-medium">{scanResult.condition}</span>
-                </div>
+                </div> */}
               </div>
 
               <div className="flex space-x-3 mt-4">
