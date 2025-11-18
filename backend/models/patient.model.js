@@ -75,7 +75,13 @@ const PatientModel = {
   // Find patient by primary key
   findByPk: async (patient_id) => {
     try {
-      const result = await db.query('SELECT * FROM patient WHERE patient_id = $1', [patient_id]);
+      const result = await db.query(
+        `SELECT p.patient_id, p.first_name, p.last_name, p.mobile_number, p.gender, m.age AS medical_history_age
+         FROM patient p
+         LEFT JOIN medical_history m ON p.patient_id = m.patient_id
+         WHERE p.patient_id = $1`,
+        [patient_id]
+      );
       return result.rows[0];
     } catch (error) {
       throw new Error(`Failed to find patient by ID: ${error.message}`);

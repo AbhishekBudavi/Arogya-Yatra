@@ -1,6 +1,6 @@
 // controllers/document.controller.js
 const jwt = require('jsonwebtoken');
-const { createDocument, getDocumentsByPatient } = require("../models/documents.model");
+const { createDocument, getDocumentsByPatient,countDocumentsByType } = require("../models/documents.model");
 
 async function createDocumentHandler(req, res) {
   try {
@@ -70,7 +70,9 @@ async function getPatientDocumentsHandler(req, res) {
   }
 }
 
+
 module.exports = {
   createDocumentHandler,
   getPatientDocumentsHandler,
+  getDocumentCounts
 };

@@ -9,7 +9,9 @@ getMedicalHistory,
   createMedicalHistory,
   updateMedicalHistory,
  getPatientQRCodeData,
- getPatientDataByToken
+ getPatientDataByToken,
+ getSelectedPatient,
+ getDocumentCounts
  } = require('../controllers/patient.controller');
 const verifyJWT = require('../middleware/verifyJWT');
 const upload = require("../middlewares/upload");
@@ -40,10 +42,10 @@ router.post("/upload-report", (verifyJWT("patient")),upload.single('file'), crea
 router.get("/labreports", getLabReportsHandler);
 router.get("/patient/prescriptionReports", getPrescriptionReportsHandler)
 router.put("/update-document/:id", verifyToken, upload.single("file"), updateDocumentHandler);
-
+router.get('/getPatinetDetail',verifyJwt(), getSelectedPatient)
 // DELETE document
 router.delete("/delete-document/:id", verifyToken, deleteDocumentHandler);
-
+router.get("/counts", verifyJWT("patient"), getDocumentCounts);
 router.get('/medical-history', (verifyJWT("patient")), getMedicalHistory);
 router.post('/medical-history', (verifyJWT("patient")), createMedicalHistory);
 router.put('/medical-history', (verifyJWT("patient")), updateMedicalHistory);

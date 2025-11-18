@@ -20,90 +20,74 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import Link from "next/link";
+import { api } from "../../../../../../utils/api";
 
 const MedicalExpenseRecords = () => {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
-  const [expences, setExpences] = useState([]);
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Sample data - in real app this would come from API
-  const expenceIds = ["EXP-2024-001", "EXP-2024-002", "EXP-2024-003"];
+  // Fetch medical expenses from API
   useEffect(() => {
-    const fetchExpences = async () => {
-      const allExpences = await Promise.all(
-        expenceIds.map(async (id) => {
-          const res = await fetch(`/api/medical-expenses/${id}`);
-          if (!res.ok) return null;
-          return res.json();
-        })
-      );
-      setExpences(allExpences.filter(Boolean));
-    };
-    fetchExpences();
-  }, []);
+    const fetchExpenses = async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/patient/medical-expenses');
+        const medicalExpenses = res.data.medicalExpenses || [];
+        
+        // Transform API data to component format
+        const transformedRecords = medicalExpenses.map((expense) => {
+          const docData = expense.document_data || {};
+          const expensesList = docData.expenses || [];
+          const totalAmount = expensesList.reduce(
+            (sum, exp) => sum + (parseFloat(exp.amount) || 0),
+            0
+          );
 
-  const [records, setRecords] = useState([
-    {
-      id: "MED001",
-      patientName: "Rajesh Kumar",
-      age: 45,
-      gender: "Male",
-      phone: "+91 9876543210",
-      date: "2024-07-08",
-      hospitalName: "Apollo Hospital",
-      doctorName: "Dr. Priya Sharma",
-      department: "Cardiology",
-      expenses: [
-        { type: "Consultation", amount: 1500, notes: "Regular checkup" },
-        { type: "ECG Test", amount: 800, notes: "Routine cardiac screening" },
-        { type: "Medication", amount: 2200, notes: "Prescribed medicines" },
-      ],
-      totalAmount: 4500,
-      status: "Pending Reimbursement",
-      hasReceipt: true,
-    },
-    {
-      id: "MED002",
-      patientName: "Meera Patel",
-      age: 32,
-      gender: "Female",
-      phone: "+91 9123456789",
-      date: "2024-07-06",
-      hospitalName: "Fortis Healthcare",
-      doctorName: "Dr. Amit Gupta",
-      department: "Orthopedics",
-      expenses: [
-        { type: "X-Ray", amount: 1200, notes: "Knee injury assessment" },
-        { type: "Physiotherapy", amount: 3000, notes: "6 sessions" },
-      ],
-      totalAmount: 4200,
-      status: "Approved",
-      hasReceipt: true,
-    },
-    {
-      id: "MED003",
-      patientName: "Arjun Singh",
-      age: 28,
-      gender: "Male",
-      phone: "+91 9998887776",
-      date: "2024-07-10",
-      hospitalName: "Max Hospital",
-      doctorName: "Dr. Kavita Rao",
-      department: "Dermatology",
-      expenses: [
-        { type: "Consultation", amount: 1800, notes: "Skin allergy treatment" },
-        { type: "Medication", amount: 1500, notes: "Topical creams" },
-      ],
-      totalAmount: 3300,
-      status: "Rejected",
-      hasReceipt: false,
-    },
-  ]);
+          return {
+            id: expense.id,
+            documentId: expense.document_id,
+            documentName: expense.document_name,
+            documentUrl: expense.document_url,
+            patientName: docData.fullName || "N/A",
+            date: docData.expenseDate || new Date().toISOString().split('T')[0],
+            hospitalName: docData.hospitalName || "N/A",
+            doctorName: docData.doctorName || "N/A",
+            department: docData.department || "N/A",
+            expenses: expensesList.map((exp) => ({
+              type: exp.type || "N/A",
+              amount: parseFloat(exp.amount) || 0,
+              notes: exp.notes || "",
+            })),
+            totalAmount: totalAmount,
+            status: "Submitted", // Default status
+            hasReceipt: !!expense.document_url,
+          };
+        });
+
+        setRecords(transformedRecords);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch medical expenses:', err);
+        setError(err.message || 'Failed to load medical expenses');
+        setRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExpenses();
+  }, []);
 
   const getStatusColor = (status) => {
     switch (status) {
       case "Approved":
         return "bg-green-100 text-green-800";
+      case "Submitted":
+        return "bg-blue-100 text-blue-800";
       case "Pending Reimbursement":
         return "bg-yellow-100 text-yellow-800";
       case "Rejected":
@@ -125,7 +109,7 @@ const MedicalExpenseRecords = () => {
   const handleDelete = (id) => {
     setRecords(records.filter((record) => record.id !== id));
   };
-  const router = useRouter();
+
   const handleGoBack = () => {
     router.back();
   };
@@ -150,7 +134,25 @@ const MedicalExpenseRecords = () => {
           <p className="text-gray-600">Manage and track all medical expenses</p>
         </div>
 
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-700">Error: {error}</p>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            </div>
+            <p className="text-gray-600">Loading medical expenses...</p>
+          </div>
+        )}
+
         {/* Search and Filter Bar */}
+        {!loading && (
         <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="relative flex-1">
@@ -173,12 +175,13 @@ const MedicalExpenseRecords = () => {
                 >
                   <option value="all">All Status</option>
                   <option value="Approved">Approved</option>
+                  <option value="Submitted">Submitted</option>
                   <option value="Pending Reimbursement">Pending</option>
                   <option value="Rejected">Rejected</option>
                 </select>
               </div>
               <Link
-                href="/dashboard/patient/records/medical-expence/expence-form"
+                href="/dashboard/patient/records/medical-expence/expense-form"
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
@@ -187,8 +190,10 @@ const MedicalExpenseRecords = () => {
             </div>
           </div>
         </div>
+        )}
 
         {/* Records Grid */}
+        {!loading && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filteredRecords.map((record) => (
             <div
@@ -214,6 +219,14 @@ const MedicalExpenseRecords = () => {
               </div>
 
               {/* Patient Info */}
+              <div className="mb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-600 font-medium">
+                    {record.patientName}
+                  </span>
+                </div>
+              </div>
 
               {/* Date and Hospital */}
               <div className="mb-4">
@@ -232,28 +245,39 @@ const MedicalExpenseRecords = () => {
 
               {/* Expenses Summary */}
               <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <h4 className="font-medium text-gray-900 mb-2">
+                <h4 className="font-medium text-gray-900 mb-3">
                   Expense Breakdown
                 </h4>
                 <div className="space-y-2">
-                  {record.expenses.map((expense, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center"
-                    >
-                      <span className="text-sm text-gray-600">
-                        {expense.type}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <IndianRupee className="w-3 h-3 text-gray-500" />
-                        <span className="text-sm font-medium">
-                          {expense.amount.toLocaleString()}
-                        </span>
+                  {record.expenses.length > 0 ? (
+                    record.expenses.map((expense, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-start"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {expense.type}
+                          </p>
+                          {expense.notes && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {expense.notes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 ml-2">
+                          <IndianRupee className="w-3 h-3 text-gray-500" />
+                          <span className="text-sm font-medium text-gray-900">
+                            {expense.amount.toLocaleString()}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">No expenses recorded</p>
+                  )}
                 </div>
-                <div className="border-t pt-2 mt-2">
+                <div className="border-t pt-2 mt-3">
                   <div className="flex justify-between items-center">
                     <span className="font-medium text-gray-900">
                       Total Amount
@@ -270,28 +294,39 @@ const MedicalExpenseRecords = () => {
 
               {/* Receipt Status */}
               {record.hasReceipt && (
-                <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-2 mb-4 bg-green-50 p-2 rounded">
                   <FileText className="w-4 h-4 text-green-600" />
                   <span className="text-sm text-green-600">
                     Receipt available
                   </span>
+                  {record.documentUrl && (
+                    <a
+                      href={record.documentUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto text-green-600 hover:text-green-700 text-xs font-medium"
+                    >
+                      View
+                    </a>
+                  )}
                 </div>
               )}
 
               {/* Actions */}
               <div className="flex justify-end gap-2">
-                <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200">
+                <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200" title="View details">
                   <Eye className="w-5 h-5" />
                 </button>
-                <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200">
+                <button className="p-2 text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200" title="Edit expense">
                   <Edit className="w-5 h-5" />
                 </button>
-                <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200">
+                <button className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all duration-200" title="Download receipt">
                   <Download className="w-5 h-5" />
                 </button>
                 <button
                   onClick={() => handleDelete(record.id)}
                   className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                  title="Delete expense"
                 >
                   <Trash className="w-5 h-5" />
                 </button>
@@ -299,21 +334,27 @@ const MedicalExpenseRecords = () => {
             </div>
           ))}
         </div>
+        )}
 
         {/* Empty State */}
-        {filteredRecords.length === 0 && (
+        {!loading && filteredRecords.length === 0 && (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               No records found
             </h3>
             <p className="text-gray-600 mb-4">
-              Try adjusting your search or filter criteria
+              {records.length === 0
+                ? "You haven't added any medical expenses yet"
+                : "Try adjusting your search or filter criteria"}
             </p>
-            <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2 mx-auto">
+            <Link
+              href="/dashboard/patient/records/medical-expence/expence-form"
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 inline-flex items-center gap-2"
+            >
               <Plus className="w-5 h-5" />
               Add New Record
-            </button>
+            </Link>
           </div>
         )}
       </div>

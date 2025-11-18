@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import {useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, User, Calendar, Building, Heart,
   Download, FileText, DollarSign, Stethoscope,
@@ -9,32 +9,142 @@ import {
 } from 'lucide-react';
 
 export default function MedicalExpenseDetails() {
+   const [formData, setFormData] = useState({
+      reportTitle: "",
+      reportType: "",
+      reportDate: "",
+      doctorName: "",
+      notes: "",
+      file: null,
+    });
   const [expense, setExpense] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fileUploaded, setFileUploaded] = useState(false);
+    const [showCard, setShowCard] = useState(false);
+    const [uploadedReportId, setUploadedReportId] = useState(null);
+const router = useRouter();
+  const searchParams = useSearchParams();
+  const reportId = searchParams.get("reportId"); // ✅ must match folder name [expenseId]
 
-  const params = useParams();
-  const expenseId = params?.expenseId; // ✅ must match folder name [expenseId]
-
-  useEffect(() => {
-    if (!expenseId) return;
-
-    const fetchData = async () => {
-      try {
-        const res = await fetch(`/api/medical-expenses/${expenseId}`);
-        if (!res.ok) throw new Error('Failed to fetch expense');
-        const data = await res.json();
-        setExpense(data);
-      } catch (err) {
-        console.error('Error fetching expense:', err);
-        setExpense(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [expenseId]);
-
+ useEffect(() => {
+     if (!reportId) return;
+ 
+     const fetchReport = async () => {
+       try {
+         const { data } = await axios.get(`/patient/labreports`);
+         const report = data.labReports.find((r) => r.id === parseInt(reportId));
+ 
+         if (report) {
+           const { title, date, documentCategory, doctorName, notes } =
+             report.document_data || {};
+           setFormData((prev) => ({
+             ...prev,
+             reportTitle: title || "",
+             reportDate: date || "",
+             reportType: documentCategory || "",
+             doctorName: doctorName || "",
+             notes: notes || "",
+           }));
+         }
+       } catch (error) {
+         console.error("Error loading report:", error);
+       }
+     };
+ 
+     fetchReport();
+   }, [reportId]);
+ 
+   const uploadDocument = async (payload, reportId) => {
+     try {
+       const formDataToSend = new FormData();
+       if (payload.file) formDataToSend.append("file", payload.file);
+       formDataToSend.append("documentType", payload.documentType);
+       formDataToSend.append(
+         "document_data",
+         JSON.stringify(payload.document_data)
+       );
+ 
+       const url = reportId
+         ? `/patient/update-document/${reportId}`
+         : `/patient/upload-report`;
+       const method = reportId ? "put" : "post";
+ 
+       const { data } = await axios[method](url, formDataToSend, {
+         headers: { "Content-Type": "multipart/form-data" },
+       });
+ 
+       return data;
+     } catch (error) {
+       console.error("Upload failed:", error.response?.data || error.message);
+       throw error;
+     }
+   };
+ 
+   const handleSubmit = async (e) => {
+     e.preventDefault();
+     setIsUploading(true);
+ 
+     const payload = {
+       documentType: "labReport",
+       document_data: {
+         title: formData.reportTitle,
+         documentCategory: formData.reportType,
+         date: formData.reportDate,
+         doctorName: formData.doctorName,
+         notes: formData.notes,
+       },
+       file: formData.file,
+     };
+ 
+     try {
+       const response = await uploadDocument(payload, reportId);
+ 
+       // Get new report ID (for newly created report)
+       const newReportId = reportId || response.document?.id;
+ 
+       // Track new report ID for button usage
+       setUploadedReportId(newReportId);
+ 
+       // Navigate immediately if it’s a new report
+       if (!reportId && newReportId) {
+         handleViewReport(newReportId);
+       }
+ 
+       alert(
+         reportId
+           ? "Report updated successfully!"
+           : "Report created successfully!"
+       );
+       setShowCard(true);
+     } catch (error) {
+       console.error("Error submitting form:", error);
+       alert("Failed to submit form.");
+     } finally {
+       setIsUploading(false);
+     }
+   };
+ 
+   const reportData = {
+     title: formData.reportTitle,
+     type: formData.reportType,
+     date: formData.reportDate
+       ? new Date(formData.reportDate).toISOString().slice(0, 10)
+       : "Not specified",
+     fileName: formData.file?.name || "Uploaded_Report.pdf",
+     fileSize: formData.file
+       ? `${(formData.file.size / 1024 / 1024).toFixed(1)} MB`
+       : "Unknown",
+     uploadTime: new Date().toLocaleTimeString([], {
+       hour: "2-digit",
+       minute: "2-digit",
+     }),
+   };
+   // Removed misplaced logic as it is already handled inside handleSubmit
+ const handleViewReport = (id = null) => {
+   const reportToView = id || uploadedReportId;
+   if (!reportToView) return;
+   router.push(`/dashboard/patient/records/labreports/${reportToView}`);
+ };
   const handleGoBack = () => {
     console.log("Going back to medical expenses list");
     // Optionally use router.back() if needed

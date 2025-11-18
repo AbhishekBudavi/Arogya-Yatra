@@ -2,7 +2,7 @@
 import React from "react";
 import Link from "next/link";
 
-
+import { useState, useEffect } from "react";
 // Removed ScrollArea import - using div with custom scroll instead
 import {
   Calendar,
@@ -26,18 +26,24 @@ import {
   Plus,
 } from "lucide-react";
 import { useRouter,  usePathname } from 'next/navigation';
-const RecordsLandingPage = ({basePath,visibleCards}) => {
-  const [recordCounts] = React.useState({
-    labReports: 2,
-    prescriptions: 1,
-    doctorNotes: 1,
-    medicalHistory: 2,
+import { api } from "../../../utils/api";
+const RecordsLandingPage = ({basePath}) => {
+ const [recordCounts, setRecordCounts] = useState({
+    labReport: 0,
+    prescription: 0,
     medicalExpenses: 0,
-    Vaccination: 1,
+    vaccination: 0,
   });
-
+  const [visibleCards, setVisibleCards] = useState([
+  "labreport",
+  "prescription",
+  "medicalExpenses",
+  "medicalHistory",
+  "doctorNotes",
+  "vaccination"
+]);
  
-
+const [loading, setLoading] = useState(true);
    const router = useRouter();
    const pathname = usePathname();
   const [showAddModal, setShowAddModal] = React.useState(false);
@@ -45,10 +51,45 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
 
   const isPatientRoute = pathname.includes("/patient/records");
 
+useEffect(() => {
+    const fetchRecordCounts = async () => {
+      try {
+        const res = await api.get("/patient/counts"); 
+        console.log("Counts API Response:", res.data);
+        
+        setRecordCounts(res.data.counts); // 
+      } catch (err) {
+        console.error("Error fetching record counts:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRecordCounts();
+  }, []);
+  console.log("the Counts are", recordCounts)
+   const getCountById = (recordId) => {
+    switch (recordId) {
+      case "labreport":
+        console.log("lab report counts", recordCounts.labReport )
+        return recordCounts.labReport;
+      case "prescription":
+        return recordCounts.prescription || 0;
+      case "medicalExpenses":
+         console.log("lab report counts", recordCounts.labReport )
+        return recordCounts.medicalExpenses || 0;
+      case "vaccination":
+        return recordCounts.vaccination || 0;
+      default:
+        return 0;
+    }
+  };
+
+  if (loading) return <p>Loading...</p>;
   // base medical records
   let medicalRecords = [
     {
-      id: "Lab Reports",
+      id: "labreport",
       title: "Lab Reports",
       count: recordCounts.labReports,
       icon: TestTube,
@@ -60,7 +101,7 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       hrefModal: `${basePath}/labreports/report-form`
     },
     {
-      id: "Prescription",
+      id: "prescription",
       title: "Prescriptions",
       count: recordCounts.prescriptions,
       icon: Pill,
@@ -72,7 +113,7 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       hrefModal: `${basePath}/prescription/prescription-form`
     },
     {
-      id: "Doctor Notes",
+      id: "doctorNotes",
       title: "Doctor Notes",
       count: recordCounts.doctorNotes,
       icon: ClipboardList,
@@ -84,7 +125,7 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       hrefModal: `${basePath}/doctor-notes/note-form`
     },
     {
-      id: "Medical History",
+      id: "medicalHistory",
       title: "Medical History",
       count: recordCounts.medicalHistory,
       icon: History,
@@ -96,7 +137,7 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       hrefModal: `${basePath}records/medicalHistory`
     },
     {
-      id: "Medical Expenses",
+      id: "medicalExpenses",
       title: "Medical Expenses",
       count: recordCounts.medicalExpenses,
       icon: DollarSign,
@@ -104,13 +145,13 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
       bgColor: "bg-pink-50",
       iconColor: "text-pink-600",
       description: "Bills, insurance claims, and expenses",
-      href: `${basePath}/medical-expence/expence-records`,
-      hrefModal: `${basePath}/medical-expence/expence-form`
+      href: `${basePath}/medical-expence/expense-records`,
+      hrefModal: `${basePath}/medical-expence/expense-form`
     },
     {
-      id: "Vaccination",
+      id: "vaccination",
       title: "Vaccination",
-      count: recordCounts.Vaccination,
+      count: recordCounts.vaccination,
       icon: Syringe,
       color: "from-red-500 to-orange-500",
       bgColor: "bg-red-50",
@@ -169,6 +210,7 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
              .filter(record => visibleCards.includes(record.id))
             .map((record, index) => {
               const IconComponent = record.icon;
+               const count = getCountById(record.id); 
               return (
                 <Link key={record.id} href={record.href}>
                 <div
@@ -180,7 +222,7 @@ const RecordsLandingPage = ({basePath,visibleCards}) => {
                       <span
                         className={`text-xl md:text-3xl font-bold ${record.iconColor}`}
                       >
-                        {record.count}
+                        {count}
                       </span>
                     </div>
                     <div

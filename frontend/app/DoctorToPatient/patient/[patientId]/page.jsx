@@ -1,8 +1,9 @@
 'use client'
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from "next/navigation";
 import { FileText, Pill, Syringe, Heart, Calendar, Download, Eye, User, Phone, Mail } from 'lucide-react';
 import RecordsLandingPage from '../../../components/patientdashboard/Records/RecordContent';
+import { api } from '../../../utils/api';
 export const dynamic = 'force-dynamic';
 const PatientDocumentsDashboard = () => {
   
@@ -10,14 +11,45 @@ const PatientDocumentsDashboard = () => {
 
   const { patientId } = useParams();
 
+  const [patient, setPatient] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchPatientData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.get(`/patient/getPatientDetail`, {
+          withCredentials: true,
+        });
+        // server returns patient object in response.data.patient (per existing code)
+        const p = response.data?.patient ?? null;
+        setPatient(p);
+      } catch (err) {
+        console.error('Error fetching patient data:', err.response?.data || err.message);
+        setError('Failed to fetch patient data. Please check the QR or login as doctor.');
+        setPatient(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPatientData();
+  }, [patientId]);
+
+  // Derived display info with sensible fallbacks
   const patientInfo = {
-    id: patientId,
-    name: 'Abhi Budavi',
-    age: 34,
-    gender: 'Female',
-    phone: '8660485626',
-    email: 'abhibudavi@email.com',
-    profilePicture: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+    id: patient?.patient_id ?? patient?.id ?? patientId ?? '—',
+    name:
+      (patient?.first_name || patient?.firstName) || (patient?.name) ?
+        [`${patient?.first_name ?? patient?.firstName ?? ''}`, `${patient?.last_name ?? patient?.lastName ?? ''}`].join(' ').trim() :
+        (patient?.name ?? 'Unknown'),
+    gender: patient?.gender ?? '—',
+    age: patient?.medical_history_age  ?? '--',
+    phone: patient?.mobile_number ?? patient?.mobile ?? '—',
+    email: patient?.email ?? '—',
+    profilePicture: patient?.photo ?? patient?.profile_picture ?? patient?.avatar ?? 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
   };
 
 
@@ -143,13 +175,7 @@ const PatientDocumentsDashboard = () => {
                 <p className="font-medium text-gray-800">{patientInfo.phone}</p>
               </div>
             </div>
-            <div className="flex items-center">
-              <Mail className="h-4 w-4 text-gray-400 mr-2" />
-              <div>
-                <p className="text-sm text-gray-500 mb-1">Email</p>
-                <p className="font-medium text-gray-800">{patientInfo.email}</p>
-              </div>
-            </div>
+         
           </div>
         </div>
         <div className='mb-8'>

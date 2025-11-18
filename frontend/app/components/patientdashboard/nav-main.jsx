@@ -180,7 +180,7 @@ const Navbar = ({ collapsed, toggleSidebar, setSidebarOpen }) => {
         Medical Records
       </button>
       <div className="border-t border-gray-100/50 mt-2 pt-2">
-        <Link href="/auth/register/patient">
+        <Link href="/auth/login/patient">
           <button className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50/50 transition-colors">
             <LogOut className="h-4 w-4 mr-3" />
             Sign Out
