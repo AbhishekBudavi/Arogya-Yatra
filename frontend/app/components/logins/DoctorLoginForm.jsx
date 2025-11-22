@@ -1,38 +1,51 @@
 "use client";
 import React, { useState } from "react";
-import { Eye, EyeOff, Lock, User, Stethoscope, Heart } from "lucide-react";
+import { User, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import api from '../../utils/api'
 const DoctorLogin = () => {
-  const [doctor_id, setDoctorid] = useState("");
-  const [password, setPassword] = useState("");
-  const [isFocused, setIsFocused] = useState({ id: false, pass: false });
+  const [license_id, setLicenseId] = useState("");
+  const [isFocused, setIsFocused] = useState({ id: false });
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-   const handleSubmit = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
     setError("");
+    setLoading(true);
 
     try {
       const res = await api.post(
         "/doctor/login",
-        { doctor_id, password },
+        { license_id },
         {
           headers: { "Content-Type": "application/json" },
           withCredentials: true,
         }
       );
-     console.log("Submitting login:", { doctor_id, password });
-      if (res.data?.token) {
-        localStorage.setItem("token", res.data.token);
-      }
 
       console.log("Login successful:", res.data);
+
+      // Store token
+      if (res.data?.token) {
+        localStorage.setItem("doctorToken", res.data.token);
+        localStorage.setItem("doctorAuthToken", res.data.token);
+      }
+
+      // Store doctor info
+      if (res.data?.data) {
+        localStorage.setItem("doctorInfo", JSON.stringify(res.data.data));
+      }
+
+      // Redirect to doctor dashboard
       window.location.href = "/dashboard/doctor";
     } catch (err) {
       console.error("Login failed:", err.response?.data || err.message);
-      setError(err.response?.data?.message || "Login failed.");
+      setError(
+        err.response?.data?.message || "Login failed. Please check your credentials."
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -60,7 +73,7 @@ const DoctorLogin = () => {
               <div className="space-y-2">
                 <label className="text-sm pb-2 pl-1 font-bold text-gray-700 flex items-center gap-2">
                   <User className="w-4 h-4" />
-                  Doctor ID
+                  License ID
                 </label>
 
                 <div
@@ -73,9 +86,9 @@ const DoctorLogin = () => {
                   <input
                     type="text"
                     className="w-full px-3 sm:px-4 py-2 outline-none bg-white text-base"
-                    placeholder="Enter your doctor id"
-                    value={doctor_id}
-                    onChange={(e) => setDoctorid(e.target.value)}
+                    placeholder="Enter your medical license ID"
+                    value={license_id}
+                    onChange={(e) => setLicenseId(e.target.value)}
                     onFocus={() => setIsFocused({ ...isFocused, id: true })}
                     onBlur={() => setIsFocused({ ...isFocused, id: false })}
                     required
@@ -85,42 +98,22 @@ const DoctorLogin = () => {
             </div>
 
             {/* Password Field */}
-            <div className="mb-5">
-              <div className="space-y-2">
-                <label className="text-sm pb-2 pl-1 font-bold text-gray-700 flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Password
-                </label>
-                <div
-                  className={`flex h-[44px] sm:h-[50px] items-center border-2 rounded-lg overflow-hidden transition-colors duration-200 ${
-                    isFocused.pass
-                      ? "outline-2 outline-purple-600 border-purple-600"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <input
-                    type="password"
-                    className="w-full px-3 sm:px-4 py-2 outline-none bg-white text-base"
-                    placeholder="Enter your Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setIsFocused({ ...isFocused, pass: true })}
-                    onBlur={() => setIsFocused({ ...isFocused, pass: false })}
-                    required
-                  />
-                </div>
-                {error && (
-                  <small className="text-red-500 mt-2 block">{error}</small>
-                )}
-              </div>
-            </div>
            
               <button
                 type="submit"
-                className={`w-full py-2 sm:py-3 text-base sm:text-lg font-semibold rounded-lg transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white`}
+                disabled={loading}
+                className={`w-full py-2 sm:py-3 text-base sm:text-lg font-semibold rounded-lg transition-colors duration-200 ${
+                  loading
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700"
+                } text-white`}
               >
-                Login
+                {loading ? "Logging in..." : "Login"}
               </button>
+
+            {error && (
+              <p className="text-red-500 mt-3 text-sm text-center">{error}</p>
+            )}
          
             <p className="text-xs sm:text-xs text-gray-500 mt-4 text-center">
               Forgot password?{" "}

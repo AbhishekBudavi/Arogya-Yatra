@@ -17,16 +17,23 @@ const DoctorDashboardNavbar = ({ setSidebarOpen }) => {
   const [error, setError] = useState("");
 
   // ✅ Fetch Doctor Dashboard Data
-  useEffect(() => {
+   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true);
       setError("");
 
       try {
-        const res = await api.get("/dashboard/doctor", { withCredentials: true });
-        setDoctorData(res.data.doctor || res.data);
+        const res = await api.get("/dashboard/doctor", {
+          withCredentials: true, //nsures cookies are sent
+        });
+        console.log("Fetched data from API:", res.data);
+        // API returns { success, message, data: { doctor info } }
+        setDoctorData(res.data?.data || res.data);
       } catch (err) {
-        console.error("Dashboard fetch error:", err);
+        console.error(
+          "Dashboard fetch error:",
+          err.response?.data || err.message
+        );
         setError("Failed to load doctor dashboard");
       } finally {
         setLoading(false);
@@ -35,6 +42,7 @@ const DoctorDashboardNavbar = ({ setSidebarOpen }) => {
 
     fetchDashboardData();
   }, []);
+
 
   // ✅ Loading & Error States
   if (loading)
@@ -51,12 +59,14 @@ const DoctorDashboardNavbar = ({ setSidebarOpen }) => {
       </div>
     );
 
-  if (!doctorData)
+  const doctor = doctorData || {};
+  if (!doctor.doctor_name) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-gray-600 text-lg">No doctor data found.</p>
       </div>
     );
+  }
 
   const { doctor_name, specialization, lastVisit } = doctorData;
 

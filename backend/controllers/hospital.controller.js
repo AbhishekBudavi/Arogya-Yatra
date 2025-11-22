@@ -1,4 +1,5 @@
 const Hospital = require('../models/hospital.model');
+const { addDoctorToHospital, getDoctorsByHospital, getDoctorWithAvailability } = require('../models/doctor.model');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
@@ -263,10 +264,141 @@ const logoutHospital = async (req, res) => {
   }
 };
 
+// Register a new doctor for the hospital
+const registerHospitalDoctor = async (req, res) => {
+  try {
+    const { hospital_id } = req.user;
+    
+    const {
+      doctor_id,
+      doctor_name,
+      specialization,
+      email,
+      phone,
+      license_id,
+      availability
+    } = req.body;
+
+    // Validate required fields
+    if (!doctor_id || !doctor_name || !specialization || !email || !phone || !license_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Doctor ID, name, specialization, email, phone, and license ID are required',
+      });
+    }
+
+    // Validate availability
+    if (!availability || !Array.isArray(availability) || availability.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one availability slot is required',
+      });
+    }
+
+    // Validate each availability slot
+    for (const slot of availability) {
+      if (!slot.day || !slot.startTime || !slot.endTime) {
+        return res.status(400).json({
+          success: false,
+          message: 'Each availability slot must have day, start time, and end time',
+        });
+      }
+    }
+
+    // Add doctor to hospital with availability
+    const doctor = await addDoctorToHospital({
+      doctor_id,
+      hospital_id,
+      doctor_name,
+      specialization,
+      email,
+      phone,
+      license_id,
+      availability
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Doctor registered successfully for the hospital',
+      data: {
+        doctor_id: doctor.doctor_id,
+        doctor_name: doctor.doctor_name,
+        specialization: doctor.specialization,
+        email: doctor.email,
+        phone: doctor.phone,
+        license_id: license_id,
+        availability: availability
+      }
+    });
+  } catch (err) {
+    console.error('Error registering hospital doctor:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to register doctor',
+      error: err.message,
+    });
+  }
+};
+
+// Get all doctors for the hospital
+const getHospitalDoctors = async (req, res) => {
+  try {
+    const { hospital_id } = req.user;
+
+    const doctors = await getDoctorsByHospital(hospital_id);
+
+    res.status(200).json({
+      success: true,
+      data: doctors,
+      message: 'Doctors retrieved successfully'
+    });
+  } catch (err) {
+    console.error('Error fetching hospital doctors:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch doctors',
+      error: err.message,
+    });
+  }
+};
+
+// Get doctor details with availability
+const getHospitalDoctorAvailability = async (req, res) => {
+  try {
+    const { hospital_id } = req.user;
+    const { doctor_id } = req.params;
+
+    const doctor = await getDoctorWithAvailability(doctor_id, hospital_id);
+    
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Doctor not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: doctor,
+      message: 'Doctor details retrieved successfully'
+    });
+  } catch (err) {
+    console.error('Error fetching doctor availability:', err);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch doctor details',
+      error: err.message,
+    });
+  }
+};
+
 // Exporting the controller functions
 module.exports = {
   registerHospital,
   loginHospital,
   getHospitalDashboard,
-  logoutHospital
+  logoutHospital,
+  registerHospitalDoctor,
+  getHospitalDoctors,
+  getHospitalDoctorAvailability
 };

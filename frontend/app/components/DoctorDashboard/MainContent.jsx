@@ -156,7 +156,8 @@ const MainContent = () => {
           withCredentials: true, //nsures cookies are sent
         });
         console.log("Fetched data from API:", res.data);
-        setDoctorData(res.data);
+        // API returns { success, message, data: { doctor info } }
+        setDoctorData(res.data?.data || res.data);
       } catch (err) {
         console.error(
           "Dashboard fetch error:",
@@ -189,9 +190,9 @@ const MainContent = () => {
     );
   }
 
-  // Data safety check
-  const doctor = doctorData?.doctor;
-  if (!doctor) {
+  // Data safety check - API returns doctor data directly
+  const doctor = doctorData || {};
+  if (!doctor.doctor_name) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-gray-600 text-lg">No doctor data found.</p>
