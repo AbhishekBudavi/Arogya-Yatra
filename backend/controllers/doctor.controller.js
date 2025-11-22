@@ -1,72 +1,42 @@
-const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const { createDoctor, findDoctorById } = require("../models/doctor.model");
-// Register a new patient
-const registerDoctor = async (req, res) => {
-  try {
-    const {
-      doctor_id,
-      doctor_name,
-      password,
-      about_me,
-      created_by,
-      updated_by,
-    } = req.body;
-
-    // check if doctor already exists
-    const existing = await findDoctorById(doctor_id);
-    if (existing)
-      return res.status(400).json({ message: "Doctor ID already exists" });
-
-    // hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const doctor = await createDoctor({
-      doctor_id,
-      doctor_name,
-      password: hashedPassword,
-      about_me,
-      created_by,
-      updated_by,
-    });
-
-    res.status(201).json({ message: "Doctor registered successfully", doctor });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to register doctor" });
-  }
-};
-// Login patient by mobile number
+const { findDoctorById, findDoctorByLicenseId } = require("../models/doctor.model");
 
 const loginDoctor = async (req, res) => {
   try {
-    const { doctor_id, password } = req.body;
-    console.log(`Docotr Id: ${doctor_id}`);
-    if (!doctor_id || !password)
-      return res.status(400).json({ message: "Doctor ID and password required" });
+    const { license_id } = req.body;
+    console.log(`Doctor Login Attempt: ${license_id}`);
 
-    const doctor = await findDoctorById(doctor_id);
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+    // Validate required fields
+    if (!license_id) {
+      return res.status(400).json({
+        success: false,
+        message: "License ID is required",
+      });
+    }
 
-    const isPasswordValid = await bcrypt.compare(password, doctor.password);
-    if (!isPasswordValid)
-      return res.status(401).json({ message: "Invalid credentials" });
+    // Find doctor by license ID
+    const doctor = await findDoctorByLicenseId(license_id);
+    if (!doctor) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found with this license ID",
+      });
+    }
 
+    // Generate JWT token
     const token = jwt.sign(
       {
         doctor_id: doctor.doctor_id,
         doctor_name: doctor.doctor_name,
+        license_id: doctor.license_id,
+        specialization: doctor.specialization,
         role: "doctor",
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
-    // Clear any patient temp token
-  // Do not clear the patient's cookie here. Allow both doctor and patient
-  // cookies to coexist so the frontend can handle role switching.
 
-    // Set doctor auth cookie using the same naming and options as patient flow
-    // Middleware expects `doctorAuthToken` and cross-site cookies need sameSite='none' in production.
+    // Set doctor auth cookie
     res.cookie("doctorAuthToken", token, {
       httpOnly: true,
       sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
@@ -74,17 +44,26 @@ const loginDoctor = async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    res.json({
+    return res.status(200).json({
+      success: true,
       message: "Login successful",
-      doctor: {
+      data: {
         doctor_id: doctor.doctor_id,
         doctor_name: doctor.doctor_name,
+        license_id: doctor.license_id,
+        specialization: doctor.specialization,
+        email: doctor.email,
+        phone: doctor.phone,
       },
-      token,
+      token: token,
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
 
@@ -95,22 +74,37 @@ const getDoctorDashboard = async (req, res) => {
 
     const doctor = await findDoctorById(doctor_id);
     if (!doctor) {
-      return res.status(404).json({ error: "Doctor not found" });
+      return res.status(404).json({
+        success: false,
+        error: "Doctor not found",
+      });
     }
 
     return res.status(200).json({
-      doctor,
+      success: true,
       message: "Dashboard data retrieved successfully",
+      data: {
+        doctor_id: doctor.doctor_id,
+        doctor_name: doctor.doctor_name,
+        specialization: doctor.specialization,
+        email: doctor.email,
+        phone: doctor.phone,
+        license_id: doctor.license_id,
+        hospital_id: doctor.hospital_id,
+        created_at: doctor.created_at,
+      },
     });
   } catch (err) {
     console.error("Error in getDoctorDashboard:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    });
   }
 };
 
 // Exporting the controller functions
 module.exports = {
-  registerDoctor,
   loginDoctor,
-  getDoctorDashboard
+  getDoctorDashboard,
 };

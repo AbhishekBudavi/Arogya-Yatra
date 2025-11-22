@@ -10,6 +10,7 @@ const morgan = require('morgan');
 const path = require("path");
 
 
+
 // Controllers
 const {
   registerPatient,
@@ -35,13 +36,13 @@ getMedicalExpensesHandler,
  getDocumentCounts,
  
 } = require('./controllers/patient.controller');
-const {registerDoctor, loginDoctor, getDoctorDashboard} = require('./controllers/doctor.controller');
+const {loginDoctor, getDoctorDashboard} = require('./controllers/doctor.controller');
+const { registerHospital, loginHospital, getHospitalDashboard, logoutHospital, registerHospitalDoctor, getHospitalDoctors, getHospitalDoctorAvailability } = require('./controllers/hospital.controller');
 
 const { verifyPatientJWT} = require('./middlewares/verifyJWTPatient');
 const { verifyDoctorJWT} = require('./middlewares/verifyJWTDoctor');
 
 const { verifyJWT } = require('./middlewares/verifyJWT');
-const { registerHospital, loginHospital, getHospitalDashboard, logoutHospital } = require('./controllers/hospital.controller');
 
 
 
@@ -53,6 +54,7 @@ const app = express();
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
+app.use(express.json());
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(cors({
   origin: 'http://localhost:3000', // frontend URL
@@ -85,6 +87,9 @@ app.post('/api/hospital/register', registerHospital);
 app.post('/api/hospital/login', loginHospital);
 app.get('/api/hospital/dashboard', verifyJWT('hospital'), getHospitalDashboard);
 app.post('/api/hospital/logout', verifyJWT('hospital'), logoutHospital);
+app.post('/api/hospital/doctors/register', verifyJWT('hospital'), registerHospitalDoctor);
+app.get('/api/hospital/doctors', verifyJWT('hospital'), getHospitalDoctors);
+app.get('/api/hospital/doctors/:doctor_id', verifyJWT('hospital'), getHospitalDoctorAvailability);
 
 //documents routes
 
@@ -113,10 +118,7 @@ app.put('/api/patient/medical-history',verifyJWT("patient"), updateMedicalHistor
 app.get('/api/patient/my-qrcode',verifyJWT("patient"), getPatientQRCodeData);
 app.get('/api/patient/scan-patient',verifyJWT("doctor"), getPatientDataByToken);
 
-// Doctor Endpoint will stary from here
-
-app.post('/api/doctor/register', registerDoctor);
-app.post ('/api/doctor/login', loginDoctor);
+// Doctor profile endpoint
 app.get('/api/doctor/profile',verifyDoctorJWT, async (req, res) => {
   try {
     // Access doctor_id from decoded token
@@ -126,16 +128,37 @@ app.get('/api/doctor/profile',verifyDoctorJWT, async (req, res) => {
     res.status(500).json({ error: "Failed to load profile" });
   }
 })
-app.get('/api/dashboard/doctor',verifyJWT("doctor"), getDoctorDashboard )
+
+// Doctor login endpoint
+app.post('/api/doctor/login', loginDoctor);
+
+// Doctor dashboard endpoint
+app.get('/api/dashboard/doctor', verifyJWT("doctor"), getDoctorDashboard);
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+// Initialize database and run migrations
+const { runMigrations } = require('./migrations/runMigrations');
+
+const startServer = async () => {
+  try {
+    await runMigrations();
+    console.log('Database ready!');
+  } catch (error) {
+    console.error('Failed to run migrations:', error);
+    process.exit(1);
+  }
+
+  // Start server
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+};
+
+startServer();
 
