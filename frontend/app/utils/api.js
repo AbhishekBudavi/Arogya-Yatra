@@ -125,5 +125,63 @@ export const patientAPI = {
   },
 };
 
+// ------------------------------
+// Hospital helpers
+// ------------------------------
+export const hospitalAPI = {
+  register: async (hospitalData) => {
+    try {
+      const response = await axiosInstance.post('/hospital/register', hospitalData);
+      return response.data;
+    } catch (error) {
+      console.error('Error registering hospital:', error);
+      throw error.response?.data || { message: 'Failed to register hospital' };
+    }
+  },
+
+  login: async (admin_mobile_number, password) => {
+    try {
+      const response = await axiosInstance.post('/hospital/login', {
+        admin_mobile_number,
+        password,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error logging in hospital:', error);
+      throw error.response?.data || { message: 'Failed to login hospital' };
+    }
+  },
+
+  getDashboard: async () => {
+    try {
+      const response = await axiosInstance.get('/hospital/dashboard');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching hospital dashboard:', error);
+      throw error.response?.data || { message: 'Failed to fetch hospital dashboard' };
+    }
+  },
+
+  logout: async () => {
+    try {
+      const response = await axiosInstance.post('/hospital/logout');
+      return response.data;
+    } catch (error) {
+      console.error('Error logging out hospital:', error);
+      throw error.response?.data || { message: 'Failed to logout hospital' };
+    }
+  },
+
+  getProfile: async () => {
+    try {
+      const response = await axiosInstance.get('/hospital/dashboard');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching hospital profile:', error);
+      throw error.response?.data || { message: 'Failed to fetch hospital profile' };
+    }
+  },
+};
+
 export const api = axiosInstance;
 export default axiosInstance;
