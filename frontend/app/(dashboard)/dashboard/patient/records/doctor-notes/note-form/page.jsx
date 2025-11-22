@@ -14,20 +14,21 @@ import {
   X,
   Database,
   RefreshCw,
-  Eye,
-  EyeOff,
   ArrowLeft
 } from "lucide-react";
 
+import doctorNotesAPI from "../../../../../../utils/doctorNotesAPI";
 const DoctorNoteAssistant = () => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [approve, setApprove] = useState(false);
   const [savedNotes, setSavedNotes] = useState([]);
+  const [error, setError] = useState(null);
   const scrollAreaRef = useRef(null);
   const messagesEndRef = useRef(null);
   const [blockedMessageId, setBlockedMessageId] = useState(null);
+  const [doctorId, setDoctorId] = useState(null);
+  const [patientId, setPatientId] = useState(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -37,17 +38,82 @@ const DoctorNoteAssistant = () => {
     scrollToBottom();
   }, [messages]);
 
-  const generateAIResponse = (doctorInput) => {
-    // Simulate AI response based on doctor input
-    const responses = [
-      `**PATIENT NOTE**\n\n**Chief Complaint:** ${doctorInput.substring(0, 50)}...\n\n**Assessment:** Patient presents with symptoms as described. Vital signs within normal limits. Recommend follow-up care and monitoring.\n\n**Plan:**\n- Continue current treatment protocol\n- Schedule follow-up in 2 weeks\n- Patient education provided\n\n**Disposition:** Stable for discharge with instructions.`,
+  // Get doctor and patient IDs from context on mount
+  useEffect(() => {
+    const getDoctorInfo = async () => {
+      try {
+        const res = await fetch("/api/doctor-notes/info", {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDoctorId(data.doctor_id);
+          setPatientId(data.patient_id);
+        }
+      } catch (err) {
+        console.log("Could not auto-fetch doctor info");
+      }
+    };
+    getDoctorInfo();
+  }, []);
 
-      `**CLINICAL DOCUMENTATION**\n\n**History of Present Illness:** ${doctorInput.substring(0, 40)}...\n\n**Physical Examination:** Unremarkable findings on general examination. Patient appears comfortable and alert.\n\n**Assessment & Plan:**\n- Diagnosis consistent with clinical presentation\n- Prescribed appropriate medication\n- Return if symptoms worsen\n\n**Provider:** Dr. [Abhishek], MD`,
+  /**
+   * Call the backend API which will invoke MCP/Ollama to generate the clinical note
+   */
+  const generateStructuredNote = async (doctorInput) => {
+    try {
+      setError(null);
+      
+      const actualDoctorId = doctorId || "DR001";
+      const actualPatientId = patientId || "PAT001";
 
-      `**PROGRESS NOTE**\n\n**Subjective:** Patient reports ${doctorInput.substring(0, 30)}...\n\n**Objective:** Vital signs stable. Physical exam notable for described findings.\n\n**Assessment:** Clinical impression supports initial diagnosis.\n\n**Plan:**\n- Continue current management\n- Lab work as indicated\n- Follow-up as scheduled\n\n**Electronically signed by:** Dr. [Sinchan]`,
-    ];
+      const payload = {
+        doctor_id: actualDoctorId,
+        patient_id: actualPatientId,
+        raw_input: doctorInput,
+      };
 
-    return responses[Math.floor(Math.random() * responses.length)];
+      const response = await doctorNotesAPI.generateClinicalNote(payload);
+
+      if (response.success && response.note) {
+        const formattedContent = formatStructuredNote(response.note);
+        return {
+          ...response.note,
+          display_content: formattedContent,
+        };
+      } else {
+        throw new Error("Invalid response from server");
+      }
+    } catch (err) {
+      console.error("Error generating note:", err);
+      setError(err.message || "Failed to generate clinical note");
+      throw err;
+    }
+  };
+
+  /**
+   * Format the structured note for display
+   */
+  const formatStructuredNote = (note) => {
+    return `**STRUCTURED CLINICAL NOTE**
+
+**Presenting Complaints:**
+${note.presenting_complaints || "Not available"}
+
+**Clinical Interpretation:**
+${note.clinical_interpretation || "Not available"}
+
+**Relevant Medical History:**
+${note.relevant_medical_history || "Not available"}
+
+**Lab Report Summary:**
+${note.lab_report_summary || "Not available"}
+
+**Assessment/Impression:**
+${note.assessment_impression || "Not available"}
+
+**Full Note:**
+${note.full_structured_note || "Not available"}`;
   };
 
   const handleSubmit = async (e) => {
@@ -55,10 +121,11 @@ const DoctorNoteAssistant = () => {
 
     if (!inputValue.trim()) return;
 
+    const userInput = inputValue;
     const newMessage = {
       id: Date.now(),
       role: "doctor",
-      content: inputValue,
+      content: userInput,
       timestamp: new Date().toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -69,94 +136,129 @@ const DoctorNoteAssistant = () => {
     setInputValue("");
     setIsLoading(true);
 
-    // Simulate AI processing delay
-    setTimeout(
-      () => {
-        const aiResponse = {
-          id: Date.now() + 1,
-          role: "ai",
-          content: generateAIResponse(inputValue),
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          status: "pending", // pending, approved, rejected
-        };
+    try {
+      const structuredNote = await generateStructuredNote(userInput);
+      
+      const aiResponse = {
+        id: Date.now() + 1,
+        role: "ai",
+        content: structuredNote.display_content,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: "pending",
+        noteData: structuredNote,
+      };
 
-        setMessages((prev) => [...prev, aiResponse]);
-        setIsLoading(false);
-      },
-      1500 + Math.random() * 1000
-    );
+      setMessages((prev) => [...prev, aiResponse]);
+    } catch (err) {
+      const errorMessage = {
+        id: Date.now() + 1,
+        role: "ai",
+        content: `Error: ${err.message || "Failed to generate note. Please try again."}`,
+        timestamp: new Date().toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        status: "error",
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleApprove = (messageId) => {
+  const handleApprove = async (messageId) => {
     const alreadyApproved = messages.some((msg) => msg.status === "approved");
 
     if (alreadyApproved) {
-      setBlockedMessageId(messageId); // mark the blocked one
-      setTimeout(() => setBlockedMessageId(null),2000); // reset after 2 seconds
+      setBlockedMessageId(messageId);
+      setTimeout(() => setBlockedMessageId(null), 2000);
       alert("Only one AI-generated note can be approved at a time.");
       return;
     }
 
-    setApprove(true);
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, status: "approved" } : msg
-      )
-    );
+    try {
+      const messageToApprove = messages.find((msg) => msg.id === messageId);
+      
+      if (messageToApprove && messageToApprove.noteData) {
+        await doctorNotesAPI.approveNote(messageToApprove.noteData.id);
+      }
 
-    const approvedMessage = messages.find((msg) => msg.id === messageId);
-    if (approvedMessage) {
-      const noteToSave = {
-        id: messageId,
-        content: approvedMessage.content,
-        timestamp: new Date().toISOString(),
-        savedAt: new Date().toLocaleString(),
-      };
-
-      setSavedNotes((prev) => [...prev, noteToSave]);
-      console.log("Saving to database:", noteToSave);
-    }
-  };
-
-  const handleReject = (messageId) => {
-    setMessages((prev) =>
-      prev.map((msg) =>
-        msg.id === messageId ? { ...msg, status: "rejected" } : msg
-      )
-    );
-  };
-
-  const handleRegenerate = (messageId) => {
-    const originalInput = messages.find(
-      (msg) => msg.role === "doctor" && msg.id === messageId - 1
-    );
-    if (originalInput) {
       setMessages((prev) =>
         prev.map((msg) =>
-          msg.id === messageId ? { ...msg, status: "regenerating" } : msg
+          msg.id === messageId ? { ...msg, status: "approved" } : msg
         )
       );
 
-      setIsLoading(true);
+      const approvedNote = messages.find((msg) => msg.id === messageId);
+      if (approvedNote) {
+        const noteToSave = {
+          id: messageId,
+          content: approvedNote.content,
+          timestamp: new Date().toISOString(),
+          savedAt: new Date().toLocaleString(),
+        };
+        setSavedNotes((prev) => [...prev, noteToSave]);
+      }
+    } catch (err) {
+      console.error("Error approving note:", err);
+      alert("Failed to approve note: " + err.message);
+    }
+  };
 
-      setTimeout(
-        () => {
-          const newResponse = {
-            ...messages.find((msg) => msg.id === messageId),
-            content: generateAIResponse(originalInput.content),
-            status: "pending",
-          };
+  const handleReject = async (messageId) => {
+    try {
+      const messageToReject = messages.find((msg) => msg.id === messageId);
+      
+      if (messageToReject && messageToReject.noteData) {
+        await doctorNotesAPI.rejectNote(messageToReject.noteData.id);
+      }
 
-          setMessages((prev) =>
-            prev.map((msg) => (msg.id === messageId ? newResponse : msg))
-          );
-          setIsLoading(false);
-        },
-        1000 + Math.random() * 500
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === messageId ? { ...msg, status: "rejected" } : msg
+        )
       );
+    } catch (err) {
+      console.error("Error rejecting note:", err);
+      alert("Failed to reject note: " + err.message);
+    }
+  };
+
+  const handleRegenerate = async (messageId) => {
+    const originalInput = messages.find(
+      (msg) => msg.role === "doctor" && msg.id === messageId - 1
+    );
+    
+    if (!originalInput) return;
+
+    setMessages((prev) =>
+      prev.map((msg) =>
+        msg.id === messageId ? { ...msg, status: "regenerating" } : msg
+      )
+    );
+
+    setIsLoading(true);
+
+    try {
+      const structuredNote = await generateStructuredNote(originalInput.content);
+
+      const newResponse = {
+        ...messages.find((msg) => msg.id === messageId),
+        content: structuredNote.display_content,
+        status: "pending",
+        noteData: structuredNote,
+      };
+
+      setMessages((prev) =>
+        prev.map((msg) => (msg.id === messageId ? newResponse : msg))
+      );
+    } catch (err) {
+      console.error("Error regenerating note:", err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -179,7 +281,7 @@ const DoctorNoteAssistant = () => {
           </div>
           <div className="flex items-center gap-2 text-blue-600">
             <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="text-xs sm:text-sm">Generating note...</span>
+            <span className="text-xs sm:text-sm">Generating clinical note using Ollama...</span>
             <div className="flex gap-1">
               <div className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"></div>
               <div
@@ -219,7 +321,7 @@ const DoctorNoteAssistant = () => {
               AI Doctor Note Generator
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 hidden sm:block">
-              Transform your clinical observations into professional documentation
+              Powered by Ollama - Transform your clinical observations into professional documentation
             </p>
             <p className="text-xs text-slate-600 sm:hidden">
               Clinical AI Assistant
@@ -230,6 +332,13 @@ const DoctorNoteAssistant = () => {
 
       {/* Main Content */}
       <div className="flex-1 max-w-6xl mx-auto w-full p-2 sm:p-4 flex flex-col bg-gradient-to-br from-slate-50 via-gray-100 to-indigo-50">
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-4 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-700 text-sm sm:text-base">{error}</p>
+          </div>
+        )}
+
         {/* Messages Area */}
         <ScrollArea className="flex-1 pr-2 sm:pr-4" ref={scrollAreaRef}>
           <div className="space-y-4 pb-4">
@@ -242,7 +351,7 @@ const DoctorNoteAssistant = () => {
                   Ready to assist with your documentation
                 </h3>
                 <p className="text-sm sm:text-base text-slate-500 max-w-md mx-auto tracking-wide">
-                  Share your clinical observations, patient symptoms, or examination findings, and I'll help generate a professional doctor's note.
+                  Share your clinical observations, patient symptoms, or examination findings. Your input will be processed through our AI (Ollama) to generate a professional clinical note.
                 </p>
               </div>
             )}
@@ -259,22 +368,24 @@ const DoctorNoteAssistant = () => {
                       : message.status === "approved"
                         ? "bg-gradient-to-br from-green-50 to-emerald-50 border-green-200 shadow-lg ring-2 ring-green-100"
                         : message.status === "rejected"
-                          ? "bg-gradient-to-br from-red-50 to-rose-50 border-red-200 shadow-md opacity-75 blur-[0.5px]"
-                          : message.status === "regenerating"
-                            ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 shadow-md"
-                            : `bg-gradient-to-br from-blue-50 to-indigo-50 ${blockedMessageId === message.id ? "border-red-500 ring-4 ring-red-600" : "border-blue-200"} shadow-lg`
+                          ? "bg-gradient-to-br from-red-50 to-rose-50 border-red-200 shadow-md opacity-75"
+                          : message.status === "error"
+                            ? "bg-gradient-to-br from-red-50 to-rose-50 border-red-200 shadow-md"
+                            : message.status === "regenerating"
+                              ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200 shadow-md"
+                              : `bg-gradient-to-br from-blue-50 to-indigo-50 ${blockedMessageId === message.id ? "border-red-500 ring-4 ring-red-600" : "border-blue-200"} shadow-lg`
                   }`}
                 >
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {message.role === "doctor" ? (
-                        <Stethoscope className="w-4 h-4 text-slate-600 tracking-wide" />
+                        <Stethoscope className="w-4 h-4 text-slate-600" />
                       ) : (
                         <Bot
                           className={`w-4 h-4 ${
                             message.status === "approved"
                               ? "text-green-600"
-                              : message.status === "rejected"
+                              : message.status === "rejected" || message.status === "error"
                                 ? "text-red-600"
                                 : message.status === "regenerating"
                                   ? "text-amber-600"
@@ -289,7 +400,7 @@ const DoctorNoteAssistant = () => {
                             ? "bg-slate-100 text-slate-700"
                             : message.status === "approved"
                               ? "bg-green-100 text-green-800"
-                              : message.status === "rejected"
+                              : message.status === "rejected" || message.status === "error"
                                 ? "bg-red-100 text-red-800"
                                 : message.status === "regenerating"
                                   ? "bg-amber-100 text-amber-800"
@@ -300,30 +411,24 @@ const DoctorNoteAssistant = () => {
                       </Badge>
 
                       {/* Status badges */}
-                      {message.role === "ai" &&
-                        message.status === "approved" && (
-                          <Badge className="bg-green-500 text-white text-xs">
-                            <Check className="w-3 h-3 mr-1" />
-                            <span className="hidden sm:inline">Approved</span>
-                            <span className="sm:hidden">✓</span>
-                          </Badge>
-                        )}
-                      {message.role === "ai" &&
-                        message.status === "rejected" && (
-                          <Badge variant="destructive" className="text-xs">
-                            <X className="w-3 h-3 mr-1" />
-                            <span className="hidden sm:inline">Rejected</span>
-                            <span className="sm:hidden">✗</span>
-                          </Badge>
-                        )}
-                      {message.role === "ai" &&
-                        message.status === "regenerating" && (
-                          <Badge className="bg-amber-500 text-white text-xs">
-                            <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
-                            <span className="hidden sm:inline">Regenerating</span>
-                            <span className="sm:hidden">↻</span>
-                          </Badge>
-                        )}
+                      {message.role === "ai" && message.status === "approved" && (
+                        <Badge className="bg-green-500 text-white text-xs">
+                          <Check className="w-3 h-3 mr-1" />
+                          <span className="hidden sm:inline">Approved</span>
+                        </Badge>
+                      )}
+                      {message.role === "ai" && message.status === "rejected" && (
+                        <Badge variant="destructive" className="text-xs">
+                          <X className="w-3 h-3 mr-1" />
+                          <span className="hidden sm:inline">Rejected</span>
+                        </Badge>
+                      )}
+                      {message.role === "ai" && message.status === "regenerating" && (
+                        <Badge className="bg-amber-500 text-white text-xs">
+                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                          <span className="hidden sm:inline">Regenerating</span>
+                        </Badge>
+                      )}
 
                       <span className="text-xs text-slate-500 ml-auto">
                         {message.timestamp}
@@ -348,17 +453,6 @@ const DoctorNoteAssistant = () => {
                         </p>
                       ))}
                     </div>
-
-                    {/* Rejection overlay */}
-                    {message.role === "ai" && message.status === "rejected" && (
-                      <div className="absolute inset-0 bg-red-500/5 rounded-lg flex items-center justify-center pointer-events-none">
-                        <div className="bg-red-500/20 px-2 sm:px-3 py-1 rounded-full">
-                          <span className="text-red-700 font-medium text-xs sm:text-sm">
-                            Content Rejected
-                          </span>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Confirmation buttons for AI responses */}
                     {message.role === "ai" && message.status === "pending" && (
@@ -410,27 +504,24 @@ const DoctorNoteAssistant = () => {
                     {/* Status indicators */}
                     {message.role === "ai" && message.status === "approved" && (
                       <div className="flex items-center gap-2 mt-3 pt-3 border-t border-green-100">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                          <Database className="w-4 h-4 text-green-600" />
-                          <span className="text-xs sm:text-sm text-green-700 font-medium">
-                            <span className="hidden sm:inline">Successfully saved to database</span>
-                            <span className="sm:hidden">Saved to database</span>
-                          </span>
-                        </div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <Database className="w-4 h-4 text-green-600" />
+                        <span className="text-xs sm:text-sm text-green-700 font-medium">
+                          <span className="hidden sm:inline">Successfully saved to database</span>
+                          <span className="sm:hidden">Saved to database</span>
+                        </span>
                       </div>
                     )}
 
-                    {message.role === "ai" &&
-                      message.status === "regenerating" && (
-                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-amber-100">
-                          <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
-                          <span className="text-xs sm:text-sm text-amber-700 font-medium">
-                            <span className="hidden sm:inline">Generating improved version...</span>
-                            <span className="sm:hidden">Regenerating...</span>
-                          </span>
-                        </div>
-                      )}
+                    {message.role === "ai" && message.status === "regenerating" && (
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-amber-100">
+                        <Loader2 className="w-4 h-4 text-amber-600 animate-spin" />
+                        <span className="text-xs sm:text-sm text-amber-700 font-medium">
+                          <span className="hidden sm:inline">Generating improved version...</span>
+                          <span className="sm:hidden">Regenerating...</span>
+                        </span>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -487,8 +578,7 @@ const DoctorNoteAssistant = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium text-green-800 text-sm sm:text-base">
-                    {savedNotes.length} Medical Note
-                    {savedNotes.length > 1 ? "s" : ""} Saved
+                    {savedNotes.length} Medical Note{savedNotes.length > 1 ? "s" : ""} Saved
                   </div>
                   <div className="text-xs sm:text-sm text-green-600">
                     <span className="hidden sm:inline">Successfully stored in database</span>

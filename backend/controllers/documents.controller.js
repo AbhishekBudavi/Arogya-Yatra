@@ -74,5 +74,5 @@ async function getPatientDocumentsHandler(req, res) {
 module.exports = {
   createDocumentHandler,
   getPatientDocumentsHandler,
-  getDocumentCounts
+
 };

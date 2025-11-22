@@ -42,9 +42,7 @@ const { verifyDoctorJWT} = require('./middlewares/verifyJWTDoctor');
 
 const { verifyJWT } = require('./middlewares/verifyJWT');
 const { registerHospital, loginHospital, getHospitalDashboard, logoutHospital } = require('./controllers/hospital.controller');
-
-
-
+const doctorNotesRoutes = require('./routes/doctorNotes.routes');
 
 // Base routes
 
@@ -127,6 +125,10 @@ app.get('/api/doctor/profile',verifyDoctorJWT, async (req, res) => {
   }
 })
 app.get('/api/dashboard/doctor',verifyJWT("doctor"), getDoctorDashboard )
+
+// Doctor Notes Routes (MCP/Ollama integration)
+app.use('/api/doctor-notes', doctorNotesRoutes);
+
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);

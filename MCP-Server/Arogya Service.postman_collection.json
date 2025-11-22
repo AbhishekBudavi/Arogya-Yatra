@@ -1,0 +1,432 @@
+{
+	"info": {
+		"_postman_id": "e1b61698-8ea2-4b67-abdd-d2491c535f44",
+		"name": "Arogya Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "44964962",
+		"_collection_link": "https://abhishekbudavi-5731384.postman.co/workspace/Abhishek-Budavi's-Workspace~400c74f8-0877-4320-80e2-036bff92ef69/collection/44964962-e1b61698-8ea2-4b67-abdd-d2491c535f44?action=share&source=collection_link&creator=44964962"
+	},
+	"item": [
+		{
+			"name": "New Request",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtb2JpbGUiOiI4NzYyOTEyMjg4IiwicGF0aWVudF9pZCI6OCwiaWF0IjoxNzU4Mzk2OTk4LCJleHAiOjE3NTkwMDE3OTh9.8PNe1EvkAJD-mj87x5B1m1xlL-h5okjcKlDy4J65H-o",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"patient_id\": 8,\r\n  \"document_type\": \"labreport\",\r\n  \"document_category\": \"blood-test\",\r\n  \"created_by\": \"doctor_1\",\r\n  \"updated_by\": \"doctor_1\",\r\n  \"document_url\": \"/uploads/report.pdf\", \r\n  \"document_data\": {\r\n    \"reportTitle\": \"Blood Test Report\",\r\n    \"report_type\": \"Blood\",\r\n    \"date\": \"2025-09-14\",\r\n    \"report_description\": \"Routine blood test\",\r\n    \"ai_summary\": \"All values normal\"\r\n  }\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/patient/upload-report",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"patient",
+						"upload-report"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"custom_doctor_id \": \"PAT-20250807-001\",\r\n  \"first_name\": \"Ishaan\",\r\n  \"last_name\": \"Verma\",\r\n  \"gender\": \"male\",\r\n  \"date_of_birth\": \"1990-03-15\",\r\n  \"mobile_number\": \"9876543210\",\r\n  \"photo\": \"https://example.com/photos/ishaan.jpg\",\r\n  \"address\": \"123 MG Road, Near City Hospital\",\r\n  \"pincode\": \"590001\",\r\n  \"city\": \"Belgaum\",\r\n  \"state\": \"Karnataka\",\r\n  \"height\": 175,\r\n  \"weight\": 70,\r\n  \"blood_group\": \"B+\",\r\n  \"allergies\": \"None\",\r\n  \"chronic_illness\": \"Hypertension\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/doctor/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"doctor",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJtb2JpbGUiOiI4NjYwNDg1NjI2IiwidGVtcCI6dHJ1ZSwiaWF0IjoxNzU0ODM5MzIyLCJleHAiOjE3NTQ4NDI5MjJ9.aoOqbcOaVoMd7Eobt2_4Bl6OtwzxK2xTMkb_j8Zx3TI",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"patient_id\": \"6\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/patient/select-profile",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"patient",
+						"select-profile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"doctor_id\": \"DR001\",\r\n  \"doctor_name\": \"Dr. Abhishek Budavi\",\r\n  \"password\": \"StrongPass123!\",\r\n  \"about_me\": \"Experienced general physician with 5 years of clinical practice.\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/doctor/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"doctor",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "57006915a5dc3b5a8554290234a59a721a4259f976ade29f75e7757839c0b0f8",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer 57006915a5dc3b5a8554290234a59a721a4259f976ade29f75e7757839c0b0f8"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5000/api/scan/patients",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"scan",
+						"patients"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3NwaXRhbF9pZCI6MiwiY3VzdG9tX2hvc3BpdGFsX2lkIjoiSE9TMjM0IiwiaG9zcGl0YWxfbmFtZSI6IkFwcG9sbyIsImFkbWluX21vYmlsZV9udW1iZXIiOiI4NjYwNDg1NjI2Iiwicm9sZSI6Imhvc3BpdGFsIiwiaWF0IjoxNzYzNzM2MTA5LCJleHAiOjE3NjQzNDA5MDl9.lT9M0O7FcO86ldzKU9VGgz5198NFJAeO0zbTw9NIgl0",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/api/hospital/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"hospital",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "New Request",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJob3NwaXRhbF9pZCI6MiwiY3VzdG9tX2hvc3BpdGFsX2lkIjoiSE9TMjM0IiwiaG9zcGl0YWxfbmFtZSI6IkFwcG9sbyIsImFkbWluX21vYmlsZV9udW1iZXIiOiI4NjYwNDg1NjI2Iiwicm9sZSI6Imhvc3BpdGFsIiwiaWF0IjoxNzYzNzM2MTA5LCJleHAiOjE3NjQzNDA5MDl9.lT9M0O7FcO86ldzKU9VGgz5198NFJAeO0zbTw9NIgl0",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"admin_mobile_number\":\"8660485626\",\r\n    \"password\":\"Abhishek@2002#\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5000/api/hospital/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"api",
+						"hospital",
+						"login"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
