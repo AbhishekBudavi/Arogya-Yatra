@@ -8,19 +8,21 @@ const verifyJWT = (requiredRole = null) => {
       const cookies = req.cookies || {};
       const patientToken = cookies.patientAuthToken || null;
       const doctorToken = cookies.doctorAuthToken || null;
+      const hospitalToken = cookies.hospitalAuthToken || null;
 
       // Fallback: Authorization header (Bearer <token>)
       const authHeader = req.headers?.authorization || req.headers?.Authorization;
       const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
       console.log('verifyJWT: cookies=', cookies);
-      console.log(`verifyJWT: patientToken(cookie)=${patientToken} doctorToken(cookie)=${doctorToken} bearer=${bearerToken}`);
+      console.log(`verifyJWT: patientToken(cookie)=${patientToken} doctorToken(cookie)=${doctorToken} hospitalToken(cookie)=${hospitalToken} bearer=${bearerToken}`);
 
       // Choose token according to requiredRole or fallback order
       let token = null;
       if (requiredRole === 'patient') token = patientToken || bearerToken;
       else if (requiredRole === 'doctor') token = doctorToken || bearerToken;
-      else token = patientToken || doctorToken || bearerToken;
+      else if (requiredRole === 'hospital') token = hospitalToken || bearerToken;
+      else token = patientToken || doctorToken || hospitalToken || bearerToken;
 
       if (!token) {
         return res.status(401).json({ error: 'Token not provided' });

@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Lock, User, Stethoscope, Heart } from "lucide-react";
 import Link from "next/link";
-import { api } from "../../utils/api";
+import api from '../../utils/api'
 const DoctorLogin = () => {
   const [doctor_id, setDoctorid] = useState("");
   const [password, setPassword] = useState("");

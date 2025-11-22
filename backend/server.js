@@ -41,7 +41,7 @@ const { verifyPatientJWT} = require('./middlewares/verifyJWTPatient');
 const { verifyDoctorJWT} = require('./middlewares/verifyJWTDoctor');
 
 const { verifyJWT } = require('./middlewares/verifyJWT');
-const { registerHospital } = require('./controllers/hospital.controller');
+const { registerHospital, loginHospital, getHospitalDashboard, logoutHospital } = require('./controllers/hospital.controller');
 
 
 
@@ -82,6 +82,9 @@ app.get('/api/patient/recent-visits', verifyJWT("patient"), getRecentVisitsContr
 
 // Doctor & Hospital routes
 app.post('/api/hospital/register', registerHospital);
+app.post('/api/hospital/login', loginHospital);
+app.get('/api/hospital/dashboard', verifyJWT('hospital'), getHospitalDashboard);
+app.post('/api/hospital/logout', verifyJWT('hospital'), logoutHospital);
 
 //documents routes
 

@@ -1,4 +1,4 @@
-import MainContent from '../../../components/DoctorDashboard/MainContent'
+import MainContent from '../../../components/HospitalDashboard/MainContent'
 export default function DoctorashboardHome(){
   return(
     <>

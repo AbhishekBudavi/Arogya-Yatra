@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import DoctorDashboardNavbar from "./DoctorDashNav";
+import DoctorDashboardNavbar from '../DoctorDashboard/DoctorDashNav'
 import {
     QrCode,
     FileText,
