@@ -32,6 +32,13 @@ export default function SelectPatientComponent() {
         patient_id: patient.patient_id,
       });
        console.log(data);
+      
+      // Store patient_id in localStorage for later retrieval
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('patientId', patient.patient_id);
+        console.log('Stored patient_id in localStorage:', patient.patient_id);
+      }
+      
       router.push(`/dashboard/patient`);
     } catch (err) {
       console.error('Select patient error:', err.response?.data || err.message);

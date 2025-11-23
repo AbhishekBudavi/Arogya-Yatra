@@ -52,22 +52,45 @@ const { verifyJWT } = require('./middlewares/verifyJWT');
 
 const app = express();
 
-// Middleware
+// Middleware - IMPORTANT: Order matters!
+// 1. Parse cookies FIRST before routes
+app.use(cookieParser());
+
+// 2. Parse JSON
 app.use(express.json({ limit: "10mb" }));
-app.use(express.json());
+
+// 3. Parse URL-encoded data
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// 4. CORS configuration
 app.use(cors({
-  origin: 'http://localhost:3000', // frontend URL
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8080'], // Allow multiple frontend URLs
   credentials: true           // allow cookies/JWT
 }));
+
+// 5. Logging
+app.use(morgan('dev'));
+
+// 6. Health check endpoint
 app.get("/whoami", (req, res) => {
   res.json({ cookies: req.cookies });
 });
 
+// 7. Diagnostics endpoint for debugging
+app.get("/api/debug/cookies", (req, res) => {
+  console.log('Cookies received:', req.cookies);
+  console.log('Headers:', req.headers);
+  res.json({ 
+    cookies: req.cookies,
+    hasPatientAuthToken: !!req.cookies?.patientAuthToken,
+    hasDoctorAuthToken: !!req.cookies?.doctorAuthToken,
+    hasHospitalAuthToken: !!req.cookies?.hospitalAuthToken,
+    authHeader: req.headers.authorization,
+  });
+});
+
+// 7. Static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads"))); 
-app.use(morgan('dev'));
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); 
 
 // Health check
 
@@ -134,6 +157,10 @@ app.post('/api/doctor/login', loginDoctor);
 
 // Doctor dashboard endpoint
 app.get('/api/dashboard/doctor', verifyJWT("doctor"), getDoctorDashboard);
+
+// Appointment routes
+const appointmentRoutes = require('./routes/appointment.routes');
+app.use('/api/appointments', appointmentRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

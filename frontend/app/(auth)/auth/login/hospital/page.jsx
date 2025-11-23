@@ -65,14 +65,20 @@ export default function HospitalLoginPage() {
 
       showToast('Login successful!', 'success');
       
-      // Store token if provided
+      // Store token and hospital ID in localStorage
       if (response?.token) {
         localStorage.setItem('hospitalToken', response.token);
+      }
+      
+      // Store hospital ID from response data
+      if (response?.data?.hospital_id) {
+        localStorage.setItem('hospitalId', response.data.hospital_id);
+        console.log('Stored hospital_id in localStorage:', response.data.hospital_id);
       }
 
       // Redirect to hospital dashboard after 2 seconds
       setTimeout(() => {
-        router.push('/dashboard/hospital');
+        router.push('/hospital-dashboard');
       }, 2000);
     } catch (error) {
       const errorMessage = error?.message || 'Login failed. Please try again.';

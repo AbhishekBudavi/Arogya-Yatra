@@ -4,7 +4,6 @@ const { findDoctorById, findDoctorByLicenseId } = require("../models/doctor.mode
 const loginDoctor = async (req, res) => {
   try {
     const { license_id } = req.body;
-    console.log(`Doctor Login Attempt: ${license_id}`);
 
     // Validate required fields
     if (!license_id) {
@@ -70,7 +69,6 @@ const loginDoctor = async (req, res) => {
 const getDoctorDashboard = async (req, res) => {
   try {
     const { doctor_id } = req.user;
-    console.log("Doctor Id:", doctor_id);
 
     const doctor = await findDoctorById(doctor_id);
     if (!doctor) {

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Sidebar from '../../../components/patientdashboard/Sidebar';
 import Navbar from '../../../components/patientdashboard/nav-main';
 import Breadcrumb from '../../../components/patientdashboard/Breadcrumb'
+import { NotificationProvider, NotificationsContainer } from '../../../context/NotificationContext';
 
 export default function PatientDashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -22,8 +23,10 @@ export default function PatientDashboardLayout({ children }) {
   }, [sidebarOpen]);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex flex-1 min-h-screen bg-gray-50">
+   <>
+   <NotificationProvider>
+      <div className="flex flex-col min-h-screen">
+        <div className="flex flex-1 min-h-screen bg-gray-50">
         {/* Sidebar */}
         <Sidebar
           collapsed={collapsed}
@@ -61,6 +64,9 @@ export default function PatientDashboardLayout({ children }) {
           </main>
         </div>
       </div>
-    </div>
+      </div>
+      <NotificationsContainer />
+    </NotificationProvider>
+    </>
   );
 }

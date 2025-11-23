@@ -96,6 +96,108 @@ export const medicalHistoryAPI = {
 };
 
 // ------------------------------
+// Appointment API helpers
+// ------------------------------
+export const appointmentAPI = {
+  // Get all appointments for hospital
+  getHospitalAppointments: async (hospitalId, filters = {}) => {
+    try {
+      const params = new URLSearchParams({
+        page: filters.page || 1,
+        limit: filters.limit || 20,
+        ...(filters.status && { status: filters.status }),
+        ...(filters.date && { date: filters.date }),
+      });
+      
+      const response = await axiosInstance.get(`/appointments/hospital/${hospitalId}/appointments?${params}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching hospital appointments:', error);
+      throw error.response?.data || { message: 'Failed to fetch appointments' };
+    }
+  },
+
+  // Get doctors for a hospital
+  getHospitalDoctors: async (hospitalId) => {
+    try {
+      const response = await axiosInstance.get(`/hospital/doctors`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching hospital doctors:', error);
+      throw error.response?.data || { message: 'Failed to fetch doctors' };
+    }
+  },
+
+  // Get doctor availability for a specific date
+  getDoctorAvailability: async (doctorId, hospitalId, appointmentDate) => {
+    try {
+      const response = await axiosInstance.get(`/appointments/slots`, {
+        params: {
+          doctor_id: doctorId,
+          hospital_id: hospitalId,
+          appointment_date: appointmentDate,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching doctor availability:', error);
+      throw error.response?.data || { message: 'Failed to fetch available slots' };
+    }
+  },
+
+  // Update appointment status
+  updateAppointmentStatus: async (appointmentId, status) => {
+    try {
+      const response = await axiosInstance.patch(`/appointments/${appointmentId}/status`, {
+        status,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error updating appointment status:', error);
+      throw error.response?.data || { message: 'Failed to update appointment status' };
+    }
+  },
+
+  // Cancel appointment
+  cancelAppointment: async (appointmentId, cancellationReason = '') => {
+    try {
+      const response = await axiosInstance.delete(`/appointments/${appointmentId}/cancel`, {
+        data: { cancellation_reason: cancellationReason },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      throw error.response?.data || { message: 'Failed to cancel appointment' };
+    }
+  },
+
+  // Get appointment details
+  getAppointmentDetails: async (appointmentId) => {
+    try {
+      const response = await axiosInstance.get(`/appointments/${appointmentId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching appointment details:', error);
+      throw error.response?.data || { message: 'Failed to fetch appointment details' };
+    }
+  },
+
+  // Reschedule appointment
+  rescheduleAppointment: async (appointmentId, appointmentDate, appointmentTime) => {
+    try {
+      const response = await axiosInstance.put(`/appointments/${appointmentId}/reschedule`, {
+        appointment_date: appointmentDate,
+        appointment_time: appointmentTime,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error rescheduling appointment:', error);
+      throw error.response?.data || { message: 'Failed to reschedule appointment' };
+    }
+  },
+};
+
+// ------------------------------
 // Authentication & Patient helpers
 // ------------------------------
 // NOTE: endpoint paths assume backend mounts controllers under /api
