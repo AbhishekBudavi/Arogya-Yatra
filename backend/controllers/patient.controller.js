@@ -96,6 +96,7 @@ const sendOTP = async (req, res) => {
   const normalized = normalizeMobile(mobile);
   try {
     const otp = generateOTP();
+    console.log("otp", otp)
     await Patient.storeOTP(normalized, otp);
 
     return res.status(200).json({ message: 'OTP sent (mocked)', mobile: normalized });
