@@ -1,5 +1,5 @@
 "use client";
-import React, { useState,useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
 import Sidebar from "./Sidebar";
 import {
@@ -14,37 +14,109 @@ import {
 } from "lucide-react";
 import Link from 'next/link'
 import api from '../../utils/api'
+import { useNotifications } from '../../context/NotificationContext';
 // Responsive Sidebar Wrapper
 
 // Enhanced Navbar Component
 const Navbar = ({ collapsed, toggleSidebar, setSidebarOpen }) => {
   const [profileDropdown, setProfileDropdown] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(3);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const [pendingAppointments, setPendingAppointments] = useState([]);
   const [patientData, setPatientData] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState("");
-    useEffect(() => {
-      const fetchDashboardData = async () => {
-        setLoading(true);
-        setError("");
-  
-        try {
-          const res = await api.get("/patient/dashboard");
-          console.log("Fetched data from API:", res.data); // Axios already gives data
-          setPatientData(res.data);
-        } catch (err) {
-          console.error(
-            "Dashboard fetch error:",
-            err.response?.data || err.message
-          );
-          setError("Failed to load patient dashboard");
-        } finally {
-          setLoading(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notificationDropdown, setNotificationDropdown] = useState(false);
+  const [recentNotifications, setRecentNotifications] = useState([]);
+
+  // Use notifications context
+  const { addNotification, notifications } = useNotifications();
+
+  // Sync context notifications to local state for dropdown display
+  useEffect(() => {
+    if (notifications && notifications.length > 0) {
+      setRecentNotifications(notifications.slice(0, 5));
+    }
+  }, [notifications]);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const res = await api.get("/patient/dashboard");
+        setPatientData(res.data);
+      } catch (err) {
+        console.error(
+          "Dashboard fetch error:",
+          err.response?.data || err.message
+        );
+        setError("Failed to load patient dashboard");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // Fetch and monitor appointment status changes
+  useEffect(() => {
+    // Use refs to track previous appointments without causing re-renders
+    let previousAppointmentsRef = {};
+
+    const fetchAppointments = async () => {
+      try {
+        const response = await api.get('/appointments/patient');
+
+        if (response.data.success && response.data.data) {
+          const appointments = response.data.data;
+          
+          // Check for status changes
+          appointments.forEach(apt => {
+            const previousStatus = previousAppointmentsRef[apt.appointment_id];
+            const currentStatus = apt.status;
+
+            // If status changed, add notification
+            if (previousStatus && previousStatus !== currentStatus) {
+              const notificationMessage = `Your appointment with ${apt.doctor_name} on ${apt.appointment_date} is now ${currentStatus}`;
+              
+              addNotification({
+                type: currentStatus === 'confirmed' ? 'success' : 'info',
+                title: `Appointment ${currentStatus}`,
+                message: notificationMessage,
+                appointmentId: apt.appointment_id,
+                oldStatus: previousStatus,
+                newStatus: currentStatus,
+                duration: 8000,
+              });
+            }
+          });
+
+          // Update refs with new appointments
+          previousAppointmentsRef = {};
+          appointments.forEach(apt => {
+            previousAppointmentsRef[apt.appointment_id] = apt.status;
+          });
+
+          // Count pending appointments
+          const pending = appointments.filter(a => a.status?.toLowerCase() === 'pending').length;
+          setNotificationCount(pending);
+          setPendingAppointments(appointments.filter(a => a.status?.toLowerCase() === 'pending'));
         }
-      };
-  
-      fetchDashboardData();
-    }, []);
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+      }
+    };
+
+    // Fetch immediately
+    fetchAppointments();
+
+    // Then poll every 30 seconds
+    const interval = setInterval(fetchAppointments, 30000);
+    return () => clearInterval(interval);
+  }, [addNotification]);
 
   const patientData2= {
     name: "Abhishek",
@@ -52,11 +124,13 @@ const Navbar = ({ collapsed, toggleSidebar, setSidebarOpen }) => {
     avatar: "SJ",
     lastVisit: "Today, 2:30 PM",
   };
-      const handleOverlayClick = (e) => {
-        if (e.target === e.currentTarget) {
-            setProfileDropdown(false);
-        }
-    };
+
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setProfileDropdown(false);
+      setNotificationDropdown(false);
+    }
+  };
 
   return (
     <nav className="bg-white/80 backdrop-blur-xl border-b border-gray-100/50 rounded-3xl shadow-lg transition-all duration-300 sticky top-0 z-40">
@@ -75,34 +149,106 @@ const Navbar = ({ collapsed, toggleSidebar, setSidebarOpen }) => {
             {/* Greeting */}
             <div className="hidden md:flex items-center space-x-2">
               <span className="text-gray-800 font-semibold">Hello,  </span>
-              { patientData ? (
-              <span className="text-gray-800 font-semibold pl-2">
-                {patientData.patient?.first_name}
-              </span>
-              ) :  (
-                    <h1 className="text-4xl font-bold mb-2">Loading...</h1>
-                  )
-}
-              {/*Need too add animation */}
-              {/* <span className="text-2xl pl-3"></span> */}
+              {patientData ? (
+                <span className="text-gray-800 font-semibold pl-2">
+                  {patientData.patient?.first_name}
+                </span>
+              ) : (
+                <h1 className="text-4xl font-bold mb-2">Loading...</h1>
+              )}
             </div>
           </div>
 
           {/* Right section */}
           <div className="flex items-center space-x-4">
-            {/* Quick Stats */}
-            
-
-            {/* Notifications Need to add Animation*/}
+            {/* Notifications Dropdown */}
             <div className="relative pl-4 pr-4">
-              <button className="relative p-3 bg-gray-50/50 hover:bg-gray-100/50 rounded-2xl transition-all duration-300 hover:scale-105 group">
+              <button
+                onClick={() => setNotificationDropdown(!notificationDropdown)}
+                className="relative p-3 bg-gray-50/50 hover:bg-gray-100/50 rounded-2xl transition-all duration-300 hover:scale-105 group"
+              >
                 <Bell className="h-5 w-5 text-gray-600 group-hover:text-gray-800" />
                 {notificationCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg">
+                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg animate-pulse">
                     {notificationCount}
                   </span>
                 )}
               </button>
+
+              {/* Notification Dropdown Menu */}
+              {notificationDropdown && (
+                <>
+                  <div
+                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+                    onClick={handleOverlayClick}
+                    aria-hidden="true"
+                  />
+                  <div className="absolute right-0 mt-2 w-80 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100/50 z-50 max-h-96 overflow-y-auto">
+                    <div className="px-4 py-3 border-b border-gray-100/50 sticky top-0 bg-white/80 backdrop-blur">
+                      <h3 className="font-semibold text-gray-800">Appointment Updates</h3>
+                      <p className="text-xs text-gray-500">
+                        {notificationCount > 0 
+                          ? `${notificationCount} pending appointment${notificationCount !== 1 ? 's' : ''}`
+                          : 'No pending updates'
+                        }
+                      </p>
+                    </div>
+                    
+                    <div className="py-2">
+                      {recentNotifications.length > 0 ? (
+                        recentNotifications.map((notif) => (
+                          <div
+                            key={notif.id}
+                            className="px-4 py-3 border-b border-gray-100/50 hover:bg-gray-50/50 transition-colors"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`w-2 h-2 rounded-full mt-2 ${
+                                notif.type === 'success' ? 'bg-green-500' : 
+                                notif.type === 'warning' ? 'bg-yellow-500' : 
+                                'bg-blue-500'
+                              }`} />
+                              <div className="flex-1">
+                                <p className="font-medium text-sm text-gray-800">{notif.title}</p>
+                                <p className="text-xs text-gray-600 mt-1">{notif.message}</p>
+                                {notif.oldStatus && notif.newStatus && (
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className="text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded">
+                                      {notif.oldStatus}
+                                    </span>
+                                    <span className="text-xs">→</span>
+                                    <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded">
+                                      {notif.newStatus}
+                                    </span>
+                                  </div>
+                                )}
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {notif.timestamp.toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="px-4 py-6 text-center text-gray-500">
+                          <p className="text-sm">No recent updates</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* View All Link */}
+                    {notificationCount > 0 && (
+                      <div className="px-4 py-3 border-t border-gray-100/50 bg-gray-50/50">
+                        <Link
+                          href="/dashboard/patient/appointment/recent-appointments"
+                          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                        >
+                          View all appointments →
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Profile Dropdown */}

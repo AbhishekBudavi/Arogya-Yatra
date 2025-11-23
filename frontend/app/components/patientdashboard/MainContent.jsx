@@ -29,7 +29,6 @@ const MainContent = () => {
 
       try {
         const res = await api.get("/patient/dashboard");
-        console.log("Fetched data from API:", res.data); // Axios already gives data
         setPatientData(res.data);
       } catch (err) {
         console.error(
@@ -44,8 +43,6 @@ const MainContent = () => {
 
     fetchDashboardData();
   }, []);
-
-  console.log("Patient data", patientData);
 
   const mainCards = [
     {
@@ -90,7 +87,7 @@ const MainContent = () => {
       bgColor: "bg-orange-50",
       iconColor: "text-orange-600",
       action: "View History",
-      href: "/dashboard/patient/Appointment/recent-appointment",
+      href: "/dashboard/patient/appointment/recent-appointments",
     },
   ];
 

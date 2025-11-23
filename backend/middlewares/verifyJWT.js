@@ -14,9 +14,6 @@ const verifyJWT = (requiredRole = null) => {
       const authHeader = req.headers?.authorization || req.headers?.Authorization;
       const bearerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 
-      console.log('verifyJWT: cookies=', cookies);
-      console.log(`verifyJWT: patientToken(cookie)=${patientToken} doctorToken(cookie)=${doctorToken} hospitalToken(cookie)=${hospitalToken} bearer=${bearerToken}`);
-
       // Choose token according to requiredRole or fallback order
       let token = null;
       if (requiredRole === 'patient') token = patientToken || bearerToken;
@@ -38,12 +35,10 @@ const verifyJWT = (requiredRole = null) => {
       }
 
       if (requiredRole && decoded.role !== requiredRole) {
-        console.log(`Role mismatch: expected ${requiredRole}, got ${decoded.role}`);
         return res.status(403).json({ error: 'Access denied' });
       }
 
       req.user = decoded;
-      console.log('Authenticated:', decoded);
       return next();
     } catch (err) {
       console.error('verifyJWT middleware error:', err);
@@ -53,3 +48,6 @@ const verifyJWT = (requiredRole = null) => {
 };
 
 module.exports = { verifyJWT };
+
+// Also export as default for easier import
+module.exports.default = verifyJWT;

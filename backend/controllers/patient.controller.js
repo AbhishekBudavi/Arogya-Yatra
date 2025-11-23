@@ -98,9 +98,6 @@ const sendOTP = async (req, res) => {
     const otp = generateOTP();
     await Patient.storeOTP(normalized, otp);
 
-   
-    console.log(`OTP for ${normalized}: ${otp}`);
-
     return res.status(200).json({ message: 'OTP sent (mocked)', mobile: normalized });
   } catch (err) {
     console.error('sendOTP error:', err);
@@ -155,10 +152,10 @@ const verifyOTP = async (req, res) => {
 
     // Store TEMP TOKEN in secure HTTP-only cookie
     // Use the same cookie name middleware and other handlers expect (`patientAuthToken`).
-    // Set sameSite to 'none' in production when frontend and backend are cross-origin.
+    // Set sameSite to 'lax' to allow cookies in cross-origin requests
     res.cookie("patientAuthToken", tempToken, {
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: 'lax',
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 1000,
     });
@@ -182,7 +179,6 @@ const getPatientsByPhone = async (req, res) => {
   try {
     // Ensure the user has a temporary verified token
     const user = req.user; // Set from auth middleware
-    console.log(`User: ${JSON.stringify(user)}`);
     if (!user || !user.temp) {
       return res.status(403).json({ error: 'Operation requires a temporary verified token' });
     }
@@ -247,7 +243,7 @@ const selectPatient = async (req, res) => {
     // set new permanent patient token
     res.cookie("patientAuthToken", token, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
